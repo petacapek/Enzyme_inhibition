@@ -1,0 +1,97 @@
+Catchment,Horizon,ID,Experiment,Time,SRP_o,SRP_a,Porg
+Plesne,Litter,P0,1,0,2.854290,0.000000,
+Plesne,Litter,P0,1,9,2.898484,0.000000,
+Plesne,Litter,P0,1,13,3.031065,0.000000,
+Plesne,Litter,P0,1,23,3.296228,0.000000,
+Plesne,Litter,P0,1,63,4.710431,0.000000,
+Plesne,Litter,P0,1,133,6.433990,0.000000,
+Plesne,Litter,P1,1,0,3.804457,1.251765,
+Plesne,Litter,P1,1,8,4.820915,1.251765,
+Plesne,Litter,P1,1,12,4.666237,1.251765,
+Plesne,Litter,P1,1,22,4.887206,1.251765,
+Plesne,Litter,P1,1,60,4.599946,1.251765,
+Plesne,Litter,P1,1,130,6.257215,1.251765,
+Plesne,Litter,P2,1,0,6.544475,5.007059,
+Plesne,Litter,P2,1,5,6.765444,5.007059,
+Plesne,Litter,P2,1,9,6.809637,5.007059,
+Plesne,Litter,P2,1,19,7.118994,5.007059,
+Plesne,Litter,P2,1,57,7.583029,5.007059,
+Plesne,Litter,P2,1,127,9.196104,5.007059,
+Plesne,Litter,1,2,0,3.237423,0.000000,2.116681
+Plesne,Litter,2,2,120,,0.000000,
+Plesne,Litter,3,2,0,,7.823529,
+Plesne,Litter,4,2,120,10.440084,7.823529,3.275664
+Plesne,Litter,5,2,0,15.804823,15.647059,4.692304
+Plesne,Litter,6,2,120,15.953844,15.647059,5.795970
+Certovo,Litter,P0,1,0,1.825314,0.000000,
+Certovo,Litter,P0,1,10,2.214204,0.000000,
+Certovo,Litter,P0,1,15,2.214204,0.000000,
+Certovo,Litter,P0,1,18,2.235809,0.000000,
+Certovo,Litter,P0,1,56,2.948773,0.000000,
+Certovo,Litter,P0,1,112,3.748158,0.000000,
+Certovo,Litter,P1,1,0,3.380873,1.374118,
+Certovo,Litter,P1,1,7,3.359268,1.374118,
+Certovo,Litter,P1,1,12,3.553713,1.374118,
+Certovo,Litter,P1,1,15,3.618528,1.374118,
+Certovo,Litter,P1,1,53,3.985813,1.374118,
+Certovo,Litter,P1,1,109,5.627793,1.374118,
+Certovo,Litter,P2,1,0,6.319153,5.496471,
+Certovo,Litter,P2,1,6,6.124708,5.496471,
+Certovo,Litter,P2,1,9,6.362363,5.496471,
+Certovo,Litter,P2,1,13,6.254338,5.496471,
+Certovo,Litter,P2,1,51,6.535203,5.496471,
+Certovo,Litter,P2,1,107,7.356193,5.496471,
+Certovo,Litter,7,2,0,3.308484,0.000000,1.433312
+Certovo,Litter,8,2,120,3.526599,0.000000,1.669555
+Certovo,Litter,9,2,0,10.588082,8.588235,1.974231
+Certovo,Litter,10,2,120,11.433278,8.588235,2.672758
+Certovo,Litter,11,2,0,16.913425,17.176471,5.474308
+Certovo,Litter,12,2,120,17.049747,17.176471,5.667233
+Plesne,Organic topsoil,P0,1,0,2.408111,0.000000,
+Plesne,Organic topsoil,P0,1,12,2.159752,0.000000,
+Plesne,Organic topsoil,P0,1,16,2.385533,0.000000,
+Plesne,Organic topsoil,P0,1,20,2.543579,0.000000,
+Plesne,Organic topsoil,P0,1,57,3.424123,0.000000,
+Plesne,Organic topsoil,P0,1,115,3.988575,0.000000,
+Plesne,Organic topsoil,P1,1,0,2.791938,1.337037,
+Plesne,Organic topsoil,P1,1,7,3.108031,1.337037,
+Plesne,Organic topsoil,P1,1,11,3.243499,1.337037,
+Plesne,Organic topsoil,P1,1,15,3.627326,1.337037,
+Plesne,Organic topsoil,P1,1,52,3.672482,1.337037,
+Plesne,Organic topsoil,P1,1,110,4.146621,1.337037,
+Plesne,Organic topsoil,P2,1,0,6.472161,5.348148,
+Plesne,Organic topsoil,P2,1,5,6.133490,5.348148,
+Plesne,Organic topsoil,P2,1,9,6.223802,5.348148,
+Plesne,Organic topsoil,P2,1,13,6.472161,5.348148,
+Plesne,Organic topsoil,P2,1,50,6.878566,5.348148,
+Plesne,Organic topsoil,P2,1,108,7.691376,5.348148,
+Plesne,Organic topsoil,13,2,0,1.813184,0.000000,1.139974
+Plesne,Organic topsoil,14,2,120,2.237643,0.000000,1.401441
+Plesne,Organic topsoil,15,2,0,9.665674,8.356481,1.721127
+Plesne,Organic topsoil,16,2,120,10.514591,8.356481,2.109028
+Plesne,Organic topsoil,17,2,0,16.642717,16.712963,3.498362
+Plesne,Organic topsoil,18,2,120,16.483545,16.712963,4.659667
+Certovo,Organic topsoil,P0,1,0,1.942557,0.000000,
+Certovo,Organic topsoil,P0,1,11,1.331580,0.000000,
+Certovo,Organic topsoil,P0,1,15,1.331580,0.000000,
+Certovo,Organic topsoil,P0,1,20,1.673727,0.000000,
+Certovo,Organic topsoil,P0,1,56,2.309143,0.000000,
+Certovo,Organic topsoil,P0,1,119,2.797924,0.000000,
+Certovo,Organic topsoil,P1,1,0,2.724607,1.377778,
+Certovo,Organic topsoil,P1,1,8,3.017876,1.377778,
+Certovo,Organic topsoil,P1,1,12,2.944559,1.377778,
+Certovo,Organic topsoil,P1,1,17,3.164510,1.377778,
+Certovo,Organic topsoil,P1,1,53,1.307141,1.377778,
+Certovo,Organic topsoil,P1,1,116,4.435342,1.377778,
+Certovo,Organic topsoil,P2,1,0,5.559539,5.511111,
+Certovo,Organic topsoil,P2,1,5,5.901686,5.511111,
+Certovo,Organic topsoil,P2,1,9,5.755051,5.511111,
+Certovo,Organic topsoil,P2,1,14,5.755051,5.511111,
+Certovo,Organic topsoil,P2,1,50,6.537101,5.511111,
+Certovo,Organic topsoil,P2,1,113,7.025883,5.511111,
+Certovo,Organic topsoil,19,2,0,1.584999,0.000000,0.996071
+Certovo,Organic topsoil,20,2,120,1.457890,0.000000,1.506397
+Certovo,Organic topsoil,21,2,0,9.338645,8.007813,1.674664
+Certovo,Organic topsoil,22,2,120,8.931896,8.007813,2.147604
+Certovo,Organic topsoil,23,2,0,15.566983,16.015625,3.781428
+Certovo,Organic topsoil,24,2,120,15.821201,16.015625,3.258516
