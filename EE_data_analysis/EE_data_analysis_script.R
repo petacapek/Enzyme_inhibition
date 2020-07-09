@@ -39,7 +39,7 @@ source("../EE_data_analysis/E_calc.R")
 ##Measured on 14.4.2020
 ###uploading the file with reaction time
 po_time<-read_ods(path="../Raw_data//14.4.2020/casy14.4.2020.ods", sheet = 2, col_names=TRUE)
-po_all<-E_calc(dataset = c("/mnt/580CBE2464C5F83D/pracovni/data_statistika/Junior/Enzymy_inhibice/Raw_data/14.4.2020/MUB_14.4.2020.xlsx"),
+po_all<-E_calc(dataset = c("/mnt/580CBE2464C5F83D/pracovni/data_statistika/Junior/Enzyme_inhibition/Raw_data/14.4.2020/MUB_14.4.2020.xlsx"),
                  MUBconc = c(0, 5, 25, 50, 125, 250),
                  APconc = c(50, 100, 250, 500, 1000),
                  Iconc = c(0, 20, 80, 120, 240),
@@ -66,7 +66,7 @@ po$Horizon<-"Litter"
 ###Measured 24.3.2020
 ###uploading the file with reaction time
 pa_time<-read_ods(path="../Raw_data/24.3.2020/casy24.3.2020.ods", sheet = 2, col_names=TRUE)
-pa_all<-E_calc(dataset = c("/mnt/580CBE2464C5F83D/pracovni/data_statistika/Junior/Enzymy_inhibice/Raw_data/24.3.2020/MUB_24.3.2020.xlsx"),
+pa_all<-E_calc(dataset = c("/mnt/580CBE2464C5F83D/pracovni/data_statistika/Junior/Enzyme_inhibition/Raw_data/24.3.2020/MUB_24.3.2020.xlsx"),
                  MUBconc = c(0, 5, 25, 50, 125, 250),
                  APconc = c(50, 100, 250, 500, 1000),
                  Iconc = c(0, 20, 80, 120, 240),
@@ -93,7 +93,7 @@ pa$Horizon<-"Organic topsoil"
 ##Measured on 6.4.2020
 ###uploading the file with reaction time
 co_time<-read_ods(path="../Raw_data/6.4.2020/casy6.4.2020.ods", sheet = 2, col_names=TRUE)
-co_all<-E_calc(dataset = c("/mnt/580CBE2464C5F83D/pracovni/data_statistika/Junior/Enzymy_inhibice/Raw_data/6.4.2020/MUB_6.4.2020.xlsx"),
+co_all<-E_calc(dataset = c("/mnt/580CBE2464C5F83D/pracovni/data_statistika/Junior/Enzyme_inhibition/Raw_data/6.4.2020/MUB_6.4.2020.xlsx"),
                  MUBconc = c(0, 5, 25, 50, 125, 250),
                  APconc = c(50, 100, 250, 500, 1000),
                  Iconc = c(0, 20, 80, 120, 240),
@@ -121,7 +121,7 @@ co$Horizon<-"Litter"
 ##Measured on 30.3.2020
 ###uploading the file with reaction time
 ca_time<-read_ods(path="../Raw_data/30.3.2020/casy30.3.2020.ods", sheet = 2, col_names=TRUE)
-ca_all<-E_calc(dataset = c("/mnt/580CBE2464C5F83D/pracovni/data_statistika/Junior/Enzymy_inhibice/Raw_data/30.3.2020/MUB_30.3.2020.xlsx"),
+ca_all<-E_calc(dataset = c("/mnt/580CBE2464C5F83D/pracovni/data_statistika/Junior/Enzyme_inhibition/Raw_data/30.3.2020/MUB_30.3.2020.xlsx"),
                  MUBconc = c(0, 5, 25, 50, 125, 250),
                  APconc = c(50, 100, 250, 500, 1000),
                  Iconc = c(0, 20, 80, 120, 240),
@@ -146,5 +146,5 @@ ca$Horizon<-"Organic topsoil"
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Merge and export the data~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 edata<-rbind(po,pa,co,ca)
-write.csv(edata, file = c("/mnt/580CBE2464C5F83D/pracovni/data_statistika/Junior/Enzymy_inhibice/enzyme_data.csv"))
+write.csv(edata, file = c("/mnt/580CBE2464C5F83D/pracovni/data_statistika/Junior/Enzyme_inhibition/enzyme_data.csv"))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
