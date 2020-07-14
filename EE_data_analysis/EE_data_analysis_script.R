@@ -13,6 +13,8 @@ library(dplyr)
 library(lamW)
 library(bbmle)
 library(nls2)
+library(FME)
+library(DEoptim)
 #############################################################GGPLOT THEME######################################################################
 theme_min<-theme(axis.text.x=element_text(vjust=0.2, size=18, colour="black"),
                  axis.text.y=element_text(hjust=0.2, size=18, colour="black"),
@@ -317,8 +319,7 @@ coef(ca_nci)
 coef(ca_uci)
 
 #Calculate the rates as a slope of linear regression
-##For first 5 minutes
-###sem budu ukladat data
+##Target data frame
 erates<-data.frame(Substrate=c(rep(unique(edata[(edata$Catchment=="Plesne" & edata$Horizon=="Litter"), "Substrate"]), each=5),
                                rep(unique(edata[(edata$Catchment=="Plesne" & edata$Horizon=="Organic topsoil"), "Substrate"]), each=5),
                                rep(unique(edata[(edata$Catchment=="Certovo" & edata$Horizon=="Litter"), "Substrate"]), each=5),
@@ -327,16 +328,257 @@ erates<-data.frame(Substrate=c(rep(unique(edata[(edata$Catchment=="Plesne" & eda
                                   rep(unique(edata[(edata$Catchment=="Plesne" & edata$Horizon=="Organic topsoil"), "InhibitorSRP"]), times=5),
                                   rep(unique(edata[(edata$Catchment=="Certovo" & edata$Horizon=="Litter"), "InhibitorSRP"]), times=5),
                                   rep(unique(edata[(edata$Catchment=="Certovo" & edata$Horizon=="Organic topsoil"), "InhibitorSRP"]), times=5)),
+                   Inhibitor=c(rep(unique(edata[(edata$Catchment=="Plesne" & edata$Horizon=="Litter"), "Inhibitor"]), times=5),
+                                  rep(unique(edata[(edata$Catchment=="Plesne" & edata$Horizon=="Organic topsoil"), "Inhibitor"]), times=5),
+                                  rep(unique(edata[(edata$Catchment=="Certovo" & edata$Horizon=="Litter"), "Inhibitor"]), times=5),
+                                  rep(unique(edata[(edata$Catchment=="Certovo" & edata$Horizon=="Organic topsoil"), "Inhibitor"]), times=5)),
                    Catchment=c(rep("Plesne", times=50), rep("Certovo", times=50)),
                    Horizon=c(rep("Litter", times=25), rep("Organic topsoil", times=25),
                              rep("Litter", times=25), rep("Organic topsoil", times=25)))
-erates$v<-NA
-erates$v.se<-NA
+##For first 5 minutes
+erates$v5<-NA
+erates$v5.se<-NA
 
-# for(i in unique(ed3$C_AP)){
-#   for(n in unique(ed3$C_I)){
-#     lmv<-lm(Pcorr2~time-1, ed3[(ed3$C_AP==i & ed3$C_I==n & ed3$time<5 & ed3$outlier=="NO"), ])
-#     ed3_v[(ed3_v$C_AP==i & ed3_v$C_I==n), "v"]<-summary(lmv)$coefficients[1]
-#     ed3_v[(ed3_v$C_AP==i & ed3_v$C_I==n), "v.se"]<-summary(lmv)$coefficients[2]
-#   }
-# }
+for(l in unique(edata$Horizon)){
+  for(k in unique(edata$Catchment)){
+    for(i in unique(edata[(edata$Horizon==l & edata$Catchment==k), "Substrate"])){
+      for(n in unique(edata[(edata$Horizon==l & edata$Catchment==k), "InhibitorSRP"])){
+        lmv<-lm(Product~time-1, edata[(edata$Substrate==i & edata$InhibitorSRP==n & 
+                                         edata$time<5 & edata$Horizon==l & edata$Catchment==k), ])
+        erates[(erates$Substrate==i & erates$InhibitorSRP==n & 
+                  erates$Horizon==l & erates$Catchment==k), "v5"]<-summary(lmv)$coefficients[1]
+        erates[(erates$Substrate==i & erates$InhibitorSRP==n & 
+                  erates$Horizon==l & erates$Catchment==k), "v5.se"]<-summary(lmv)$coefficients[2]
+      }
+    }
+  }
+}
+
+##For 2 hours
+erates$v120<-NA
+erates$v120.se<-NA
+
+for(l in unique(edata$Horizon)){
+  for(k in unique(edata$Catchment)){
+    for(i in unique(edata[(edata$Horizon==l & edata$Catchment==k), "Substrate"])){
+      for(n in unique(edata[(edata$Horizon==l & edata$Catchment==k), "InhibitorSRP"])){
+        lmv<-lm(Product~time-1, edata[(edata$Substrate==i & edata$InhibitorSRP==n & 
+                                         edata$time<120 & edata$Horizon==l & edata$Catchment==k), ])
+        erates[(erates$Substrate==i & erates$InhibitorSRP==n & 
+                  erates$Horizon==l & erates$Catchment==k), "v120"]<-summary(lmv)$coefficients[1]
+        erates[(erates$Substrate==i & erates$InhibitorSRP==n & 
+                  erates$Horizon==l & erates$Catchment==k), "v120.se"]<-summary(lmv)$coefficients[2]
+      }
+    }
+  }
+}
+
+##Calculate the relative activity (in respect to substrate without the inhibitor)
+erates$v5rel<-NA
+erates$v5rel.se<-NA
+
+for(l in unique(edata$Horizon)){
+ for(k in unique(edata$Catchment)){
+   for(i in unique(edata[(edata$Horizon==l & edata$Catchment==k), "Substrate"])){
+     for(n in unique(edata[(edata$Horizon==l & edata$Catchment==k), "Inhibitor"])){
+       erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v5rel"]<-
+         erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v5"]/
+         erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v5"]*100
+       erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v5rel.se"]<-
+         sqrt((erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v5.se"]/
+         erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v5"])^2 + 
+           (erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v5.se"]/
+              erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v5"])^2)* 
+         erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v5rel"]
+     }
+   }
+ }
+}
+
+erates$v120rel<-NA
+erates$v120rel.se<-NA
+
+for(l in unique(erates$Horizon)){
+  for(k in unique(erates$Catchment)){
+    for(i in unique(erates[(erates$Horizon==l & erates$Catchment==k), "Substrate"])){
+      for(n in unique(erates[(erates$Horizon==l & erates$Catchment==k), "Inhibitor"])){
+        erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120rel"]<-
+          erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120"]/
+          erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v120"]*100
+        erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120rel.se"]<-
+          sqrt((erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120.se"]/
+                  erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120"])^2 + 
+                 (erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v120.se"]/
+                    erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v120"])^2)* 
+          erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120rel"]
+      }
+    }
+  }
+}
+
+##Plot
+###add lumped factor for graphics
+erates$Legend<-NA
+for(i in 1:nrow(erates)){
+  if(erates$Catchment[i]=="Plesne" & erates$Horizon[i]=="Litter"){
+    erates$Legend[i]<-"Plesne - Litter"
+  }else{
+    if(erates$Catchment[i]=="Plesne" & erates$Horizon[i]=="Organic topsoil"){
+      erates$Legend[i]<-"Plesne - Organic topsoil"
+    }else{
+      if(erates$Catchment[i]=="Certovo" & erates$Horizon[i]=="Litter"){
+        erates$Legend[i]<-"Certovo - Litter"
+      }else{
+        erates$Legend[i]<-"Certovo - Organic topsoil"
+      }
+    }
+  }
+}
+
+erates$Substrate2<-round(erates$Substrate, 0)
+erates$Substrate3<-rep(erates$Substrate2[1:25], times=4)
+
+###Predictions of the product inhibition function
+epredts<-data.frame(Substrate=c(rep(unique(edata[(edata$Catchment=="Plesne" & edata$Horizon=="Litter"), "Substrate"]), each=50),
+                               rep(unique(edata[(edata$Catchment=="Plesne" & edata$Horizon=="Organic topsoil"), "Substrate"]), each=50),
+                               rep(unique(edata[(edata$Catchment=="Certovo" & edata$Horizon=="Litter"), "Substrate"]), each=50),
+                               rep(unique(edata[(edata$Catchment=="Certovo" & edata$Horizon=="Organic topsoil"), "Substrate"]), each=50)),
+                   InhibitorSRP=rep(seq(0, 16, length.out = 50), times=4),
+                   Catchment=c(rep("Plesne", times=50*5*2), rep("Certovo", times=50*5*2)),
+                   Horizon=c(rep("Litter", times=50*5), rep("Organic topsoil", times=50*5),
+                             rep("Litter", times=50*5), rep("Organic topsoil", times=50*5)))
+
+
+epredts$v<-NA
+for(i in 1:nrow(epredts)){
+  if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
+    epredts$v[i]<-coef(plo_ci)[1]*epredts$Substrate[i]/(coef(plo_ci)[2]*(1+epredts$InhibitorSRP[i]/coef(plo_ci)[3]) + epredts$Substrate[i])
+  }else{
+    if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
+      epredts$v[i]<-coef(pla_ci)[1]*epredts$Substrate[i]/(coef(pla_ci)[2]*(1+epredts$InhibitorSRP[i]/coef(pla_ci)[3]) + epredts$Substrate[i])
+    }else{
+      if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
+        epredts$v[i]<-coef(co_ci)[1]*epredts$Substrate[i]/(coef(co_ci)[2]*(1+epredts$InhibitorSRP[i]/coef(co_ci)[3]) + epredts$Substrate[i])
+      }else{
+        epredts$v[i]<-coef(ca_ci)[1]*epredts$Substrate[i]/(coef(ca_ci)[2]*(1+epredts$InhibitorSRP[i]/coef(ca_ci)[3]) + epredts$Substrate[i])
+      }
+    }
+  }
+}
+
+###relative rates
+for(l in unique(epredts$Horizon)){
+  for(k in unique(epredts$Catchment)){
+    for(i in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "Substrate"])){
+      for(n in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "InhibitorSRP"])){
+        epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "vrel"]<-
+          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v"]/
+          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==0), "v"]*100
+      }
+    }
+  }
+}
+
+###add lumped factor for graphics
+epredts$Legend<-NA
+for(i in 1:nrow(epredts)){
+  if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
+    epredts$Legend[i]<-"Plesne - Litter"
+  }else{
+    if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
+      epredts$Legend[i]<-"Plesne - Organic topsoil"
+    }else{
+      if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
+        epredts$Legend[i]<-"Certovo - Litter"
+      }else{
+        epredts$Legend[i]<-"Certovo - Organic topsoil"
+      }
+    }
+  }
+}
+
+epredts$Substrate2<-round(epredts$Substrate, 0)
+epredts$Substrate3<-rep(epredts$Substrate2[1:250], times=4)
+
+
+ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
+  facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+  scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+  xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
+  geom_line(data=epredts, aes(InhibitorSRP, vrel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
+  scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
+  scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
+
+# ggplot(erates, aes(InhibitorSRP, v120rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
+#  facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+#  scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+#  xlim(0, 16) + geom_errorbar(aes(ymin=v120rel-v120rel.se, ymax=v120rel+v120rel.se), width=0.01) +
+#  geom_line(data=epredts, aes(InhibitorSRP, vrel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
+#  scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
+#  scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
+
+#############################################################################################################################################
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Testing the two pools of enzyme~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#############################################################################################################################################
+#Load the function
+source("two_epools.R")
+##Plesne catchment
+###Litter horizon
+plo_2ci<-two_epools(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter"))
+plo_2ci$Parameters
+plo_2ci$Goodness$Gfit
+
+###Organic topsoil
+pla_2ci<-two_epools(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil"))
+pla_2ci$Parameters
+pla_2ci$Goodness$Gfit
+
+##Certovo catchment
+###Litter horizon
+co_2ci<-two_epools(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter"))
+co_2ci$Parameters
+co_2ci$Goodness$Gfit
+
+###Organic topsoil
+ca_2ci<-two_epools(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil"))
+ca_2ci$Parameters
+ca_2ci$Goodness$Gfit
+
+# ###Michaelis-Menten kinetic for comparison
+# plo_2wi<-nls(Product~Substrate-Km*lambertW0(Substrate/Km*exp((Substrate-Vmax*time)/Km)),
+#              data=subset(edata, Catchment=="Plesne" & Horizon=="Litter"),
+#              start = list(Vmax=0.1, Km=20))
+# summary(plo_2wi)
+# 
+# plo_2ci$Goodness$Yhat$WI<-predict(plo_2wi, newdata=plo_2ci$Goodness$Yhat)
+# 
+# ggplot(plo_2ci$Goodness$Yhat, aes(Pred, Product)) + geom_point() + geom_abline(intercept = 0, slope=1)+
+#   geom_point(data=plo_2ci$Goodness$Yhat, aes(WI, Product), color="red")
+# 
+# summary(lm(Pred~Product, data = plo_2ci$Goodness$Yhat))
+# summary(lm(Product~WI, data = plo_2ci$Goodness$Yhat))
+# anova(lm(Product~Pred, data = plo_2ci$Goodness$Yhat), lm(Product~WI, data = plo_2ci$Goodness$Yhat))
+# 
+#Add to a previous data frame
+epredts_plo<-subset(epredts, Catchment=="Plesne" & Horizon=="Litter")
+epredts_plo$two_epool<-with(epredts_plo, (plo_2ci$Parameters[1]*Substrate/(plo_2ci$Parameters[2] + Substrate)) + 
+                      (plo_2ci$Parameters[3]*Substrate/(plo_2ci$Parameters[4]*(1+InhibitorSRP/plo_2ci$Parameters[4]) + Substrate)))
+
+epredts_plo$two_epoolrel<-NA
+
+for(i in unique(epredts_plo$Substrate)){
+ for(n in unique(epredts_plo$InhibitorSRP)){
+   epredts_plo[(epredts_plo$Substrate==i & epredts_plo$InhibitorSRP==n), "two_epoolrel"]<-
+     epredts_plo[(epredts_plo$Substrate==i & epredts_plo$InhibitorSRP==n), "two_epool"]/
+     epredts_plo[(epredts_plo$Substrate==i & epredts_plo$InhibitorSRP==0), "two_epool"]*100
+ }
+}
+
+ggplot(subset(erates, Catchment=="Plesne" & Horizon=="Litter"), aes(InhibitorSRP, v5rel)) + 
+ geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
+ theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+ scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+ xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
+ geom_line(data=epredts_plo, aes(InhibitorSRP, vrel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
+ scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
+ scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
