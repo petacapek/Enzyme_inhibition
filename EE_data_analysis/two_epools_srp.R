@@ -1,12 +1,12 @@
-two_epools<-function(data){
+two_epools_srp<-function(data){
   
   #Define the model
-  two_e_model<-function(time, state, pars){
+  two_esrp_model<-function(time, state, pars){
     
     with(as.list(c(state, pars)),{
       
       dPs<-(Vmax1*S/(Km1 + S))+(Vmax2*S/(Km2*(1+Pt/Kic) + S))#fluorescent product
-      dPt<-(Vmax1*S/(Km1 + S))+(Vmax2*S/(Km2*(1+Pt/Kic) + S))#SRP
+      dPt<-(Vmax1*S/(Km1 + S))+(Vmax2*S/(Km2*(1+Pt/Kic) + S)) + alfa#SRP
       dS<--(Vmax1*S/(Km1 + S))-(Vmax2*S/(Km2*(1+Pt/Kic) + S))
                  
       return(list(c(dPs, dPt, dS)))
@@ -21,17 +21,18 @@ two_epools<-function(data){
     yhat<-data.frame(Pred=numeric(), Product=numeric(), Substrate=numeric())
     for(i in unique(data$Substrate)){
       for(n in unique(data$InhibitorSRP)){
-        out<-as.data.frame(ode(y=c(Ps=0, Pt=n, S=i), parms = c(Vmax1=x[1], Km1=x[2], Vmax2=x[3], Km2=x[4], Kic=x[5]), 
-                           two_e_model, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"]))))) 
+        out<-as.data.frame(ode(y=c(Ps=0, Pt=n, S=i), parms = c(Vmax1=x[1], Km1=x[2], Vmax2=x[3], Km2=x[4], Kic=x[5],
+                                                               alfa=mean(data[(data$Substrate==i & data$InhibitorSRP==n), "slope"])), 
+                           two_esrp_model, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"]))))) 
       
       out<-out[, c("time", "Ps")]
       colnames(out)<-c("time", "Pred")
-      outm<-merge(out, data[(data$Substrate==i & data$InhibitorSRP==n), c("time", "Product", "Substrate", "InhibitorSRP")], by = c("time"))
+      outm<-merge(out, data[(data$Substrate==i & data$InhibitorSRP==n), c("time", "Product", "Substrate")], by = c("time"))[,-1]
       yhat<-rbind(yhat, outm)
       }
     }
     
-    RMSE<-with(yhat, sum((((Pred-Product)*InhibitorSRP/Substrate)^2), na.rm = T))
+    RMSE<-with(yhat, sum((((Pred-Product)/Substrate)^2), na.rm = T))
     return(RMSE)
   }
   
@@ -51,14 +52,15 @@ two_epools<-function(data){
   #Calculate goodness of correspondence
   goodness<-function(x){
     yhat<-data.frame(time = numeric(), Pred=numeric(), Product=numeric(), Substrate=numeric(), InhibitorSRP=numeric(),
-                     Catchment=character(), Horizon=character())
+                     Catchment=character(), Horizon=character(), Pt=numeric())
     
     for(i in unique(data$Substrate)){
       for(n in unique(data$InhibitorSRP)){
-        out<-as.data.frame(ode(y=c(Ps=0, Pt=n, S=i), parms = c(Vmax1=x[1], Km1=x[2], Vmax2=x[3], Km2=x[4], Kic=x[5]), 
-                           two_e_model, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"]))))) 
-        out<-out[, c("time", "Ps")]
-        colnames(out)<-c("time", "Pred")
+        out<-as.data.frame(ode(y=c(Ps=0, Pt=n, S=i), parms = c(Vmax1=x[1], Km1=x[2], Vmax2=x[3], Km2=x[4], Kic=x[5],
+                                                               alfa=mean(data[(data$Substrate==i & data$InhibitorSRP==n), "slope"])), 
+                           two_esrp_model, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"]))))) 
+        out<-out[, c("time", "Ps", "Pt")]
+        colnames(out)<-c("time", "Pred", "Pt")
         outm<-merge(out, data[(data$Substrate==i & data$InhibitorSRP==n), c("time", "Product")], by = c("time"))
         outm$Substrate<-rep(i, times=nrow(outm))
         outm$InhibitorSRP<-rep(i, times=nrow(outm))
