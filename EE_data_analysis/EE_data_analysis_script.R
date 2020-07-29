@@ -15,6 +15,10 @@ library(bbmle)
 library(nls2)
 library(FME)
 library(DEoptim)
+library(rgenoud)
+library(ABCoptim)
+library(gridExtra)
+library(reshape)
 #############################################################GGPLOT THEME######################################################################
 theme_min<-theme(axis.text.x=element_text(vjust=0.2, size=18, colour="black"),
                  axis.text.y=element_text(hjust=0.2, size=18, colour="black"),
@@ -199,7 +203,7 @@ for(i in 1:nrow(pdata)){
 ggplot(pdata[pdata$Time==0, ], aes(SRP_a, SRP_o)) + geom_point(cex=6, aes(fill=Legend, shape=Legend)) +
   theme_min + scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
   scale_shape_manual(values = c(21, 22, 21, 22)) + 
-  theme(legend.title = element_blank(), legend.position = c(0.1, 0.8)) +
+  theme(legend.title = element_blank(), legend.position = c(0.2, 0.8)) +
   ylim(0, 20) + xlim(0, 20) + geom_abline(intercept = 0, slope=1, color="black") +
   stat_smooth(method="lm", lty=2, lwd=1.5, se=F, colour="black") +
   ylab(expression(paste("Measured SRP (", mu, "mol ", g^{-1}, ")"))) + 
@@ -246,10 +250,10 @@ uci<-"time ~ -1/Vmax*(Km*log((Substrate-Product)/(Substrate))+
 
 #Plesne catchment
 ##Litter horizon
-plo_wi<-nls(wi, data = edata, subset = Catchment=="Plesne" & Horizon=="Litter", start=list(Vmax=1, Km=1))
-plo_ci<-nls(ci, data = edata, subset = Catchment=="Plesne" & Horizon=="Litter", start=list(Vmax=1, Km=1, Kic=1))
-plo_nci<-nls(nci, data = edata, subset = Catchment=="Plesne" & Horizon=="Litter", start=list(Vmax=0.1, Km=10, Kiu=10))
-plo_uci<-nls(uci, data = edata, subset = Catchment=="Plesne" & Horizon=="Litter", start=list(Vmax=0.1, Km=10, Kiu=20))
+plo_wi<-nls(wi, data = edata, subset = Catchment=="Plesne" & Horizon=="Litter" & time<90, start=list(Vmax=1, Km=1))
+plo_ci<-nls(ci, data = edata, subset = Catchment=="Plesne" & Horizon=="Litter" & time<90, start=list(Vmax=1, Km=1, Kic=1))
+plo_nci<-nls(nci, data = edata, subset = Catchment=="Plesne" & Horizon=="Litter" & time<90, start=list(Vmax=0.1, Km=10, Kiu=10))
+plo_uci<-nls(uci, data = edata, subset = Catchment=="Plesne" & Horizon=="Litter" & time<90, start=list(Vmax=0.1, Km=10, Kiu=20))
 ###AIC test
 AICtab(plo_wi, plo_ci, plo_nci, plo_uci, weights=T, sort=T, base=T, logLik=T)
 ###Ftest
@@ -304,7 +308,7 @@ coef(co_uci)
 ca_wi<-nls(wi, data = edata, subset = Catchment=="Certovo" & Horizon=="Organic topsoil", start=list(Vmax=1, Km=1))
 ca_ci<-nls(ci, data = edata, subset = Catchment=="Certovo" & Horizon=="Organic topsoil", start=list(Vmax=1, Km=1, Kic=1))
 ca_nci<-nls(nci, data = edata, subset = Catchment=="Certovo" & Horizon=="Organic topsoil", start=list(Vmax=0.1, Km=10, Kiu=10))
-ca_uci<-nlsLM(nci, data = edata, subset = Catchment=="Certovo" & Horizon=="Organic topsoil", start=list(Vmax=0.1, Km=10, Kiu=10))
+ca_uci<-nlsLM(uci, data = edata, subset = Catchment=="Certovo" & Horizon=="Organic topsoil", start=list(Vmax=0.1, Km=10, Kiu=10))
 ###AIC test
 AICtab(ca_wi, ca_ci, ca_nci, ca_uci, weights=T, sort=T, base=T, logLik=T)
 ###Ftest
@@ -373,39 +377,39 @@ for(l in unique(edata$Horizon)){
 #   }
 # }
 # 
-# ##For first 20 minutes
-# erates$v20<-NA
-# erates$v20.se<-NA
-# 
-# for(l in unique(edata$Horizon)){
-#   for(k in unique(edata$Catchment)){
-#     for(i in unique(edata[(edata$Horizon==l & edata$Catchment==k), "Substrate"])){
-#       for(n in unique(edata[(edata$Horizon==l & edata$Catchment==k), "InhibitorSRP"])){
-#         lmv<-lm(Product~time-1, edata[(edata$Substrate==i & edata$InhibitorSRP==n & 
-#                                          edata$time<20 & edata$Horizon==l & edata$Catchment==k), ])
-#         erates[(erates$Substrate==i & erates$InhibitorSRP==n & 
-#                   erates$Horizon==l & erates$Catchment==k), "v20"]<-summary(lmv)$coefficients[1]
-#         erates[(erates$Substrate==i & erates$InhibitorSRP==n & 
-#                   erates$Horizon==l & erates$Catchment==k), "v20.se"]<-summary(lmv)$coefficients[2]
-#       }
-#     }
-#   }
-# }
+##For first 20 minutes
+erates$v30<-NA
+erates$v30.se<-NA
+
+for(l in unique(edata$Horizon)){
+ for(k in unique(edata$Catchment)){
+   for(i in unique(edata[(edata$Horizon==l & edata$Catchment==k), "Substrate"])){
+     for(n in unique(edata[(edata$Horizon==l & edata$Catchment==k), "InhibitorSRP"])){
+       lmv<-lm(Product~time-1, edata[(edata$Substrate==i & edata$InhibitorSRP==n & 
+                                        edata$time<30 & edata$Horizon==l & edata$Catchment==k), ])
+       erates[(erates$Substrate==i & erates$InhibitorSRP==n & 
+                 erates$Horizon==l & erates$Catchment==k), "v30"]<-summary(lmv)$coefficients[1]
+       erates[(erates$Substrate==i & erates$InhibitorSRP==n & 
+                 erates$Horizon==l & erates$Catchment==k), "v30.se"]<-summary(lmv)$coefficients[2]
+     }
+   }
+ }
+}
 
 ##For 2 hours
-erates$v120<-NA
-erates$v120.se<-NA
+erates$v90<-NA
+erates$v90.se<-NA
 
 for(l in unique(edata$Horizon)){
   for(k in unique(edata$Catchment)){
     for(i in unique(edata[(edata$Horizon==l & edata$Catchment==k), "Substrate"])){
       for(n in unique(edata[(edata$Horizon==l & edata$Catchment==k), "InhibitorSRP"])){
         lmv<-lm(Product~time-1, edata[(edata$Substrate==i & edata$InhibitorSRP==n & 
-                                         edata$time>30 & edata$time<120 & edata$Horizon==l & edata$Catchment==k), ])
+                                         edata$time>30 & edata$time<90 & edata$Horizon==l & edata$Catchment==k), ])
         erates[(erates$Substrate==i & erates$InhibitorSRP==n & 
-                  erates$Horizon==l & erates$Catchment==k), "v120"]<-summary(lmv)$coefficients[1]
+                  erates$Horizon==l & erates$Catchment==k), "v90"]<-summary(lmv)$coefficients[1]
         erates[(erates$Substrate==i & erates$InhibitorSRP==n & 
-                  erates$Horizon==l & erates$Catchment==k), "v120.se"]<-summary(lmv)$coefficients[2]
+                  erates$Horizon==l & erates$Catchment==k), "v90.se"]<-summary(lmv)$coefficients[2]
       }
     }
   }
@@ -475,22 +479,22 @@ for(l in unique(edata$Horizon)){
 #   }
 # }
 
-erates$v120rel<-NA
-erates$v120rel.se<-NA
+erates$v90rel<-NA
+erates$v90rel.se<-NA
 
 for(l in unique(erates$Horizon)){
   for(k in unique(erates$Catchment)){
     for(i in unique(erates[(erates$Horizon==l & erates$Catchment==k), "Substrate"])){
       for(n in unique(erates[(erates$Horizon==l & erates$Catchment==k), "Inhibitor"])){
-        erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120rel"]<-
-          erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120"]/
-          erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v120"]*100
-        erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120rel.se"]<-
-          sqrt((erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120.se"]/
-                  erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120"])^2 + 
-                 (erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v120.se"]/
-                    erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v120"])^2)* 
-          erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v120rel"]
+        erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v90rel"]<-
+          erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v90"]/
+          erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v90"]*100
+        erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v90rel.se"]<-
+          sqrt((erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v90.se"]/
+                  erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v90"])^2 + 
+                 (erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v90.se"]/
+                    erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==0), "v90"])^2)* 
+          erates[(erates$Horizon==l & erates$Catchment==k & erates$Substrate==i & erates$Inhibitor==n), "v90rel"]
       }
     }
   }
@@ -585,20 +589,342 @@ ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = 
   facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
   scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
   xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
-  geom_line(data=epredts, aes(InhibitorSRP, vrel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
+  geom_line(data=epredts, aes(InhibitorSRP, vrel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2, show.legend = F) +
+  scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
+  scale_linetype_manual(values=c(rep("solid", 4), "longdash")) +
+  ylab("Enzyme activity inhibition (%)") +
+  xlab(expression(paste("Added P-P", O[4], "(", mu, "mol ", ~g^{-1}, ")"))) +
+  labs(fill=expression(paste("Substrate ( ", mu, "mol", g^{-1}, ")"))) +
+  theme(legend.position = c(0.85,0.3))
+
+# ggplot(erates, aes(InhibitorSRP, v90rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3)), show.legend = F) +
+#   facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+#   scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+#   xlim(0, 16) + geom_errorbar(aes(ymin=v90rel-v90rel.se, ymax=v90rel+v90rel.se), width=0.01) +
+#   geom_line(data=epredts, aes(InhibitorSRP, vrel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2, show.legend = F) +
+#   scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
+#   scale_linetype_manual(values=c(rep("solid", 4), "longdash")) +
+#   ggtitle("B)")
+
+Erts<-melt(erates[(erates$Substrate3==63 & erates$Inhibitor==0), c("Catchment", "Horizon", "v5", "v30", "v90")], 
+           id.vars = c("Catchment", "Horizon"))
+Erts$se<-melt(erates[(erates$Substrate3==63 & erates$Inhibitor==0), c("Catchment", "Horizon", "v5.se", "v30.se", "v90.se")], 
+           id.vars = c("Catchment", "Horizon"))[,4]
+
+ggplot(Erts, aes(Catchment, value)) + geom_bar(aes(fill=variable), stat = "identity", position=position_dodge(), color="black") +
+  facet_wrap(~Horizon, scales="free_y") + theme_min + 
+  scale_fill_manual(values = c("white", "grey", "black"), name = "Reaction time", labels=c("5 minutes", "30 minutes", "90 minutes")) +
+  geom_errorbar(aes(ymin=value-se, ymax=value+se, color=variable), position=position_dodge(), show.legend = F) +
+  scale_color_manual(values = c("black", "black", "black")) +
+  theme(axis.title.x = element_blank()) +
+  ylab(expression(paste("Potential enzyme activity (", mu, "mol ", g^{-1}, min^{-1}, ")")))
+  
+
+#Calculate the explained variability in concentration of product over time
+source("CI_model.R")
+##Plesne catchment
+###Litter horizon
+plo_ci2<-CI_model(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter" & time<90), parameters = coef(plo_ci))
+plo_ci2$Gfit
+
+###Organic topsoil
+pla_ci2<-CI_model(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil" & time<90), parameters = coef(pla_ci))
+pla_ci2$Gfit
+
+##Certovo catchment
+###Litter horizon
+co_ci2<-CI_model(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter" & time<90), parameters = coef(co_ci))
+co_ci2$Gfit
+
+###Organic topsoil
+ca_ci2<-CI_model(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil" & time<90), parameters = coef(ca_ci))
+ca_ci2$Gfit
+
+##Combine
+CI_all<-rbind(plo_ci2$Yhat, pla_ci2$Yhat, co_ci2$Yhat, ca_ci2$Yhat)
+CI_all$InhibitorSRP2<-round(CI_all$InhibitorSRP, 0)
+CI_all$Substrate2<-round(CI_all$Substrate, 0)
+CI_all$InhibitorSRP3<-rep(CI_all[c(1:nrow(plo_ci2$Yhat)), "InhibitorSRP2"], 4)
+CI_all$Substrate3<-rep(CI_all[c(1:nrow(plo_ci2$Yhat)), "Substrate2"], 4)
+
+##add lumped factor for graphics
+for(i in 1:nrow(CI_all)){
+  if(CI_all$Catchment[i]=="Plesne" & CI_all$Horizon[i]=="Litter"){
+    CI_all$Legend[i]<-"Plesne - Litter"
+  }else{
+    if(CI_all$Catchment[i]=="Plesne" & CI_all$Horizon[i]=="Organic topsoil"){
+      CI_all$Legend[i]<-"Plesne - Organic topsoil"
+    }else{
+      if(CI_all$Catchment[i]=="Certovo" & CI_all$Horizon[i]=="Litter"){
+        CI_all$Legend[i]<-"Certovo - Litter"
+      }else{
+        CI_all$Legend[i]<-"Certovo - Organic topsoil"
+      }
+    }
+  }
+}
+#############################################################################################################################################
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Acknkowledging different initial Porg concentration~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#############################################################################################################################################
+#Vizualize
+ggplot(subset(pdata, Time!=0), aes(SRP_a, log(Porg))) + geom_point(cex=6, aes(colour = as.factor(Horizon), shape=Catchment)) +
+  theme_min + stat_smooth(method=lm, se=F, aes(color=Horizon))
+
+#Generate the relationship for each horizon separately
+pdata$Inhibitor<-pdata$SRP_a
+porg_o<-lm(log(Porg)~Inhibitor, pdata, subset = Horizon=="Litter")
+summary(porg_o)
+
+porg_a<-lm(log(Porg)~Inhibitor, pdata, subset = Horizon=="Organic topsoil")
+summary(porg_a)
+
+#Add to data frame
+edata$Porg<-NA
+edata[edata$Horizon=="Litter", "Porg"]<-exp(predict(porg_o, newdata=edata[edata$Horizon=="Litter", ]))
+edata[edata$Horizon!="Litter", "Porg"]<-exp(predict(porg_a, newdata=edata[edata$Horizon!="Litter", ]))
+
+#Run the competitive inhibition model again with competition between fluorescent substrate and Porg
+##Load the function
+source("CI_Porg.R")
+##Plesne catchment
+###Litter horizon
+plo_cip<-CI_Porg(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter" & time<90))
+plo_cip$Parameters
+plo_cip$Goodness$Gfit
+
+###Organic topsoil
+pla_cip<-CI_Porg(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil" & time<90))
+pla_cip$Parameters
+pla_cip$Goodness$Gfit
+
+##Certovo catchment
+###Litter horizon
+co_cip<-CI_Porg(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter" & time<90))
+co_cip$Parameters
+co_cip$Goodness$Gfit
+
+###Organic topsoil
+ca_cip<-CI_Porg(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil" & time<90))
+ca_cip$Parameters
+ca_cip$Goodness$Gfit
+
+#Add results to a epredts data frame
+epredts$v_p<-NA
+epredts$Porg<-NA
+epredts$Inhibitor<-epredts$InhibitorSRP
+epredts[epredts$Horizon=="Litter", "Porg"]<-exp(predict(porg_o, newdata=epredts[epredts$Horizon=="Litter", ]))
+epredts[epredts$Horizon!="Litter", "Porg"]<-exp(predict(porg_a, newdata=epredts[epredts$Horizon!="Litter", ]))
+
+for(i in 1:nrow(epredts)){
+  if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
+    epredts$v_p[i]<-plo_cip$Parameters[1]*epredts$Substrate[i]/
+      (plo_cip$Parameters[2]*(1+epredts$InhibitorSRP[i]/plo_cip$Parameters[3])*(1+epredts$Porg[i]/plo_cip$Parameters[4]) + epredts$Substrate[i])
+  }else{
+    if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
+      epredts$v_p[i]<-pla_cip$Parameters[1]*epredts$Substrate[i]/
+        (pla_cip$Parameters[2]*(1+epredts$InhibitorSRP[i]/pla_cip$Parameters[3])*(1+epredts$Porg[i]/pla_cip$Parameters[4]) + epredts$Substrate[i])
+    }else{
+      if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
+        epredts$v_p[i]<-co_cip$Parameters[1]*epredts$Substrate[i]/
+          (co_cip$Parameters[2]*(1+epredts$InhibitorSRP[i]/co_cip$Parameters[3])*(1+epredts$Porg[i]/co_cip$Parameters[4]) + epredts$Substrate[i])
+      }else{
+        epredts$v_p[i]<-ca_cip$Parameters[1]*epredts$Substrate[i]/
+          (ca_cip$Parameters[2]*(1+epredts$InhibitorSRP[i]/ca_cip$Parameters[3])*(1+epredts$Porg[i]/ca_cip$Parameters[4]) + epredts$Substrate[i])
+      }
+    }
+  }
+}
+
+###relative rates
+epredts$v_prel<-NA
+for(l in unique(epredts$Horizon)){
+  for(k in unique(epredts$Catchment)){
+    for(i in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "Substrate"])){
+      for(n in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "InhibitorSRP"])){
+        epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_prel"]<-
+          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_p"]/
+          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==0), "v_p"]*100
+      }
+    }
+  }
+}
+
+ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
+  facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+  scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+  xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
+  geom_line(data=epredts, aes(InhibitorSRP, v_prel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
   scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
   scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
 
-# ggplot(erates, aes(InhibitorSRP, v120rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
-# facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
-# scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
-# xlim(0, 16) + geom_errorbar(aes(ymin=v120rel-v120rel.se, ymax=v120rel+v120rel.se), width=0.01) +
-# geom_line(data=epredts, aes(InhibitorSRP, vrel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
-# scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
-# scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
+ggplot(erates, aes(InhibitorSRP, v90rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
+  facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+  scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+  xlim(0, 16) + geom_errorbar(aes(ymin=v90rel-v90rel.se, ymax=v90rel+v90rel.se), width=0.01) +
+  geom_line(data=epredts, aes(InhibitorSRP, v_prel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
+  scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
+  scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
 
 #############################################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Acknkowledging the SRP sorption/release kinetic~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Testing the two pools of enzyme~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#############################################################################################################################################
+#Load the function
+source("two_epools.R")
+source("two_epools2.R")
+##Plesne catchment
+###Litter horizon
+plo_2ci<-two_epools(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter" & time<90))
+plo_2ci$Parameters
+plo_2ci$Goodness$Gfit
+plo_ci2$Gfit
+plo_cip$Goodness$Gfit
+####F test
+(plo_ci2$Gfit[["SSres"]] - plo_2ci$Goodness$Gfit[["SSres"]])*(nrow(plo_ci2$Yhat)-length(plo_2ci$Parameters))/
+  plo_2ci$Goodness$Gfit[["SSres"]]/(length(plo_2ci$Parameters)-length(coef(plo_ci)))
+pf(q=(plo_ci2$Gfit[["SSres"]] - plo_2ci$Goodness$Gfit[["SSres"]])*(nrow(plo_ci2$Yhat)-length(plo_2ci$Parameters))/
+     plo_2ci$Goodness$Gfit[["SSres"]]/(length(plo_2ci$Parameters)-length(coef(plo_ci))), 
+   df1=(length(plo_2ci$Parameters)-length(coef(plo_ci))), 
+   df2=(nrow(plo_ci2$Yhat)-length(plo_2ci$Parameters)), 
+   lower.tail=F)
+
+
+####additional calculations
+plo_2ci$Goodness<-two_epools2(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter" & time<90), parameters = plo_2ci$Parameters)
+
+###Organic topsoil
+pla_2ci<-two_epools(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil" & time<90))
+pla_2ci$Parameters
+pla_2ci$Goodness$Gfit
+pla_ci2$Gfit
+pla_cip$Goodness$Gfit
+####F test
+(pla_ci2$Gfit[["SSres"]] - pla_2ci$Goodness$Gfit[["SSres"]])*(nrow(pla_ci2$Yhat)-length(pla_2ci$Parameters))/
+  pla_2ci$Goodness$Gfit[["SSres"]]/(length(pla_2ci$Parameters)-length(coef(pla_ci)))
+pf(q=(pla_ci2$Gfit[["SSres"]] - pla_2ci$Goodness$Gfit[["SSres"]])*(nrow(pla_ci2$Yhat)-length(pla_2ci$Parameters))/
+     pla_2ci$Goodness$Gfit[["SSres"]]/(length(pla_2ci$Parameters)-length(coef(pla_ci))), 
+   df1=(length(pla_2ci$Parameters)-length(coef(pla_ci))), 
+   df2=(nrow(pla_ci2$Yhat)-length(pla_2ci$Parameters)), 
+   lower.tail=F)
+
+####additional calculations
+pla_2ci$Goodness<-two_epools2(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil" & time<90), parameters = pla_2ci$Parameters)
+
+##Certovo catchment
+###Litter horizon
+co_2ci<-two_epools(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter" & time<90))
+co_2ci$Parameters
+co_2ci$Goodness$Gfit
+co_ci2$Gfit
+co_cip$Goodness$Gfit
+####F test
+(co_ci2$Gfit[["SSres"]] - co_2ci$Goodness$Gfit[["SSres"]])*(nrow(co_ci2$Yhat)-length(co_2ci$Parameters))/
+  co_2ci$Goodness$Gfit[["SSres"]]/(length(co_2ci$Parameters)-length(coef(co_ci)))
+pf(q=(co_ci2$Gfit[["SSres"]] - co_2ci$Goodness$Gfit[["SSres"]])*(nrow(co_ci2$Yhat)-length(co_2ci$Parameters))/
+     co_2ci$Goodness$Gfit[["SSres"]]/(length(co_2ci$Parameters)-length(coef(co_ci))), 
+   df1=(length(co_2ci$Parameters)-length(coef(co_ci))), 
+   df2=(nrow(co_ci2$Yhat)-length(co_2ci$Parameters)), 
+   lower.tail=F)
+
+####additional calculations
+co_2ci$Goodness<-two_epools2(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter" & time<90), parameters = co_2ci$Parameters)
+
+###Organic topsoil
+ca_2ci<-two_epools(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil" & time<90))
+ca_2ci$Parameters
+ca_2ci$Goodness$Gfit
+ca_ci2$Gfit
+ca_cip$Goodness$Gfit
+####F test
+(ca_ci2$Gfit[["SSres"]] - ca_2ci$Goodness$Gfit[["SSres"]])*(nrow(ca_ci2$Yhat)-length(ca_2ci$Parameters))/
+  ca_2ci$Goodness$Gfit[["SSres"]]/(length(ca_2ci$Parameters)-length(coef(ca_ci)))
+pf(q=(ca_ci2$Gfit[["SSres"]] - ca_2ci$Goodness$Gfit[["SSres"]])*(nrow(ca_ci2$Yhat)-length(ca_2ci$Parameters))/
+     ca_2ci$Goodness$Gfit[["SSres"]]/(length(ca_2ci$Parameters)-length(coef(ca_ci))), 
+   df1=(length(ca_2ci$Parameters)-length(coef(ca_ci))), 
+   df2=(nrow(ca_ci2$Yhat)-length(ca_2ci$Parameters)), 
+   lower.tail=F)
+
+####additional calculations
+ca_2ci$Goodness<-two_epools2(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil" & time<90), parameters = ca_2ci$Parameters)
+
+
+###Add to a previous data frame
+epredts$v_two<-NA
+for(i in 1:nrow(epredts)){
+  if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
+    epredts$v_two[i]<-plo_2ci$Parameters[1]*epredts$Substrate[i]/(plo_2ci$Parameters[2] + epredts$Substrate[i])+
+      plo_2ci$Parameters[3]*epredts$Substrate[i]/(plo_2ci$Parameters[4]*(1+epredts$InhibitorSRP[i]/plo_2ci$Parameters[5]) + epredts$Substrate[i])
+  }else{
+    if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
+      epredts$v_two[i]<-pla_2ci$Parameters[1]*epredts$Substrate[i]/(pla_2ci$Parameters[2] + epredts$Substrate[i])+
+        pla_2ci$Parameters[3]*epredts$Substrate[i]/(pla_2ci$Parameters[4]*(1+epredts$InhibitorSRP[i]/pla_2ci$Parameters[5]) + epredts$Substrate[i])
+    }else{
+      if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
+        epredts$v_two[i]<-co_2ci$Parameters[1]*epredts$Substrate[i]/(co_2ci$Parameters[2] + epredts$Substrate[i])+
+          co_2ci$Parameters[3]*epredts$Substrate[i]/(co_2ci$Parameters[4]*(1+epredts$InhibitorSRP[i]/co_2ci$Parameters[5]) + epredts$Substrate[i])
+      }else{
+        epredts$v_two[i]<-ca_2ci$Parameters[1]*epredts$Substrate[i]/(ca_2ci$Parameters[2] + epredts$Substrate[i])+
+          ca_2ci$Parameters[3]*epredts$Substrate[i]/(ca_2ci$Parameters[4]*(1+epredts$InhibitorSRP[i]/ca_2ci$Parameters[5]) + epredts$Substrate[i])
+      }
+    }
+  }
+}
+
+###relative rates
+epredts$v_tworel<-NA
+for(l in unique(epredts$Horizon)){
+  for(k in unique(epredts$Catchment)){
+    for(i in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "Substrate"])){
+      for(n in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "InhibitorSRP"])){
+        epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_tworel"]<-
+          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_two"]/
+          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==0), "v_two"]*100
+      }
+    }
+  }
+}
+
+ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
+  facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+  scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+  xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
+  geom_line(data=epredts, aes(InhibitorSRP, v_tworel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
+  scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
+  scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
+
+#Combine all predictions
+Yhat_all<-rbind(plo_2ci$Goodness$Yhat, pla_2ci$Goodness$Yhat,
+                co_2ci$Goodness$Yhat, ca_2ci$Goodness$Yhat)
+##Vizualize
+###add lumped factor for graphics
+for(i in 1:nrow(Yhat_all)){
+  if(Yhat_all$Catchment[i]=="Plesne" & Yhat_all$Horizon[i]=="Litter"){
+    Yhat_all$Legend[i]<-"Plesne - Litter"
+  }else{
+    if(Yhat_all$Catchment[i]=="Plesne" & Yhat_all$Horizon[i]=="Organic topsoil"){
+      Yhat_all$Legend[i]<-"Plesne - Organic topsoil"
+    }else{
+      if(Yhat_all$Catchment[i]=="Certovo" & Yhat_all$Horizon[i]=="Litter"){
+        Yhat_all$Legend[i]<-"Certovo - Litter"
+      }else{
+        Yhat_all$Legend[i]<-"Certovo - Organic topsoil"
+      }
+    }
+  }
+}
+
+Yhat_all$InhibitorSRP2<-round(Yhat_all$InhibitorSRP, 0)
+Yhat_all$Substrate2<-round(Yhat_all$Substrate, 0)
+Yhat_all$InhibitorSRP3<-rep(Yhat_all[c(1:nrow(plo_2ci$Goodness$Yhat)), "InhibitorSRP2"], 4)
+Yhat_all$Substrate3<-rep(Yhat_all[c(1:nrow(plo_2ci$Goodness$Yhat)), "Substrate2"], 4)
+
+ggplot(subset(Yhat_all, Substrate3==63 & InhibitorSRP3==4 & time<90), aes(time, Product)) +
+  geom_point(aes(shape=Legend, color=Legend), cex=6) + theme_min + 
+  geom_line(aes(time, Pred, color=Legend)) +
+  stat_smooth(mehtod=lm, aes(color=Legend), lty=2)
+
+
+#############################################################################################################################################
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~SRP release kinetic~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #############################################################################################################################################
 pdata$SRP_a2<-round(pdata$SRP_a, 0)
 #Calculate relative change of SRP concentration in respects to time 0
@@ -661,8 +987,8 @@ for(i in unique(pdata$Catchment)){
                          data.frame(Catchment = pdata[(pdata$Catchment==i & pdata$Horizon==n & pdata$SRP_a==k), "Catchment"][1],
                                     Horizon = pdata[(pdata$Catchment==i & pdata$Horizon==n & pdata$SRP_a==k), "Horizon"][1],
                                     SRP_a=k,
-                                    slope=coef(lm(SRP_o~Time, data=pdata[(pdata$Catchment==i & pdata$Horizon==n & pdata$SRP_a==k & pdata$outlier=="NO"),]))[2],
-                                    se=summary(lm(SRP_o~Time, data=pdata[(pdata$Catchment==i & pdata$Horizon==n & pdata$SRP_a==k & pdata$outlier=="NO"),]))[[4]][[4]]
+                                    slope=coef(lm(log(SRP_o)~Time, data=pdata[(pdata$Catchment==i & pdata$Horizon==n & pdata$SRP_a==k & pdata$outlier=="NO"),]))[2],
+                                    se=summary(lm(log(SRP_o)~Time, data=pdata[(pdata$Catchment==i & pdata$Horizon==n & pdata$SRP_a==k & pdata$outlier=="NO"),]))[[4]][[4]]
                          ))
       }, error = function(e){print("Nejde kurva")})
       
@@ -687,323 +1013,486 @@ for(i in 1:nrow(SRPslopes)){
     }
   }
 }
-ggplot(SRPslopes, aes(SRP_a, slope)) + geom_point(cex=6, aes(fill=Legend, shape=Legend)) + theme_min +
+
+ggplot(SRPslopes, aes(SRP_a, slope*60)) + geom_point(cex=6, aes(fill=Legend, shape=Legend)) + theme_min +
   scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
-  scale_shape_manual(values = c(21, 22, 21, 22)) + geom_errorbar(aes(ymin=slope-se, ymax=slope+se))+
-  theme(legend.title = element_blank(), legend.position = c(0.8, 0.8)) +
-  stat_smooth(method=lm, lwd=1.2, color="black", lty=2) +
-  ylab(expression(paste("SRP relative rate of increase (", min^{-1}, ")"))) + 
-  xlab(expression(paste("Added SRP (", mu, "mol ", g^{-1}, ")"))) 
+  scale_shape_manual(values = c(21, 22, 21, 22)) + geom_errorbar(aes(ymin=(slope-se)*60, ymax=(slope+se)*60))+
+  theme(legend.title = element_blank(), legend.position = c(0.7, 0.7)) +
+  ylab(expression(paste("SRP increase rate (", h^{-1}, ")"))) + 
+  xlab(expression(paste("Added P-P", O[4]," (", mu, "mol ", g^{-1}, ")"))) +
+  ggtitle("A)")
 
-
-#Add to original data frame
-##Generate the general relationship
-SRPslopes$Inhibitor<-SRPslopes$SRP_a
-slope_calc<-lm(slope~Inhibitor, SRPslopes)
-summary(slope_calc)
-##Apply to original data
-edata$slope<-predict(slope_calc, newdata=edata)
-
-#Run the competitive inhibition model again with SRP release over time accounted for
-##Load the function
-source("CI_SRP.R")
+#Check with model predictions
+source("two_epools_pred.R")
+#Fill in gaps in the data frame
+pdata$Porg2<-NA
+pdata[pdata$Horizon=="Litter", "Porg2"]<-exp(predict(porg_o, newdata=pdata[pdata$Horizon=="Litter", ]))
+pdata[pdata$Horizon!="Litter", "Porg2"]<-exp(predict(porg_a, newdata=pdata[pdata$Horizon!="Litter", ]))
 ##Plesne catchment
 ###Litter horizon
-plo_cisrp<-CI_SRP(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter"))
-plo_cisrp$Parameters
-plo_cisrp$Goodness$Gfit
+plo_srp<-two_epools_pred(data=subset(pdata, Catchment=="Plesne" & Horizon=="Litter" ), parameters = plo_2ci$Parameters)
+plo_srp$Gfit
 
 ###Organic topsoil
-pla_cisrp<-CI_SRP(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil"))
-pla_cisrp$Parameters
-pla_cisrp$Goodness$Gfit
+pla_srp<-two_epools_pred(data=subset(pdata, Catchment=="Plesne" & Horizon=="Organic topsoil" ), parameters = pla_2ci$Parameters)
+pla_srp$Gfit
 
 ##Certovo catchment
 ###Litter horizon
-co_cisrp<-CI_SRP(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter"))
-co_cisrp$Parameters
-co_cisrp$Goodness$Gfit
+co_srp<-two_epools_pred(data=subset(pdata, Catchment=="Certovo" & Horizon=="Litter" ), parameters = co_2ci$Parameters)
+co_srp$Gfit
 
 ###Organic topsoil
-ca_cisrp<-CI_SRP(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil"))
-ca_cisrp$Parameters
-ca_cisrp$Goodness$Gfit
+ca_srp<-two_epools_pred(data=subset(pdata, Catchment=="Certovo" & Horizon=="Organic topsoil" ), parameters = ca_2ci$Parameters)
+ca_srp$Gfit
 
-#Add results to a epredts data frame
-epredts$v_srp<-NA
-for(i in 1:nrow(epredts)){
-  if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
-    epredts$v_srp[i]<-plo_cisrp$Parameters[1]*epredts$Substrate[i]/(plo_cisrp$Parameters[2]*(1+epredts$InhibitorSRP[i]/plo_cisrp$Parameters[3]) + epredts$Substrate[i])
+##All
+SRP_preds<-rbind(plo_srp$Yhat, pla_srp$Yhat, co_srp$Yhat, ca_srp$Yhat)
+
+##Visualize
+###add lumped factor for graphics
+SRP_preds$Legend<-NA
+for(i in 1:nrow(SRP_preds)){
+  if(SRP_preds$Catchment[i]=="Plesne" & SRP_preds$Horizon[i]=="Litter"){
+    SRP_preds$Legend[i]<-"Plesne - Litter"
   }else{
-    if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
-      epredts$v_srp[i]<-pla_cisrp$Parameters[1]*epredts$Substrate[i]/(pla_cisrp$Parameters[2]*(1+epredts$InhibitorSRP[i]/pla_cisrp$Parameters[3]) + epredts$Substrate[i])
+    if(SRP_preds$Catchment[i]=="Plesne" & SRP_preds$Horizon[i]=="Organic topsoil"){
+      SRP_preds$Legend[i]<-"Plesne - Organic topsoil"
     }else{
-      if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
-        epredts$v_srp[i]<-co_cisrp$Parameters[1]*epredts$Substrate[i]/(co_cisrp$Parameters[2]*(1+epredts$InhibitorSRP[i]/co_cisrp$Parameters[3]) + epredts$Substrate[i])
+      if(SRP_preds$Catchment[i]=="Certovo" & SRP_preds$Horizon[i]=="Litter"){
+        SRP_preds$Legend[i]<-"Certovo - Litter"
       }else{
-        epredts$v_srp[i]<-ca_cisrp$Parameters[1]*epredts$Substrate[i]/(ca_cisrp$Parameters[2]*(1+epredts$InhibitorSRP[i]/ca_cisrp$Parameters[3]) + epredts$Substrate[i])
+        SRP_preds$Legend[i]<-"Certovo - Organic topsoil"
       }
     }
   }
 }
 
-###relative rates
-epredts$v_srprel<-NA
-for(l in unique(epredts$Horizon)){
-  for(k in unique(epredts$Catchment)){
-    for(i in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "Substrate"])){
-      for(n in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "InhibitorSRP"])){
-        epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_srprel"]<-
-          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_srp"]/
-          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==0), "v_srp"]*100
-      }
-    }
-  }
-}
+ggplot(SRP_preds, aes(SRP_o, Pred)) + geom_point(cex=6, aes(fill=Legend, shape=Legend)) +
+  theme_min + geom_abline(intercept = 0, slope=1, color="black") +
+  scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
+  scale_shape_manual(values = c(21, 22, 21, 22)) + 
+  theme(legend.title = element_blank(), legend.position = c(0.2, 0.7)) +
+  ylim(0,20) + xlim(0, 20) +
+  ylab(expression(paste("Predicted SRP (", mu, "mol ", g^{-1}, ")"))) +
+  xlab(expression(paste("Measured SRP (", mu, "mol ", g^{-1}, ")"))) +
+  ggtitle("B)")
 
-ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
-  facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
-  scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
-  xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
-  geom_line(data=epredts, aes(InhibitorSRP, v_srprel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
-  scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
-  scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
+grid.arrange(ggplot(SRPslopes, aes(SRP_a, slope*60)) + geom_point(cex=6, aes(fill=Legend, shape=Legend)) + theme_min +
+               scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
+               scale_shape_manual(values = c(21, 22, 21, 22)) + geom_errorbar(aes(ymin=(slope-se)*60, ymax=(slope+se)*60))+
+               theme(legend.title = element_blank(), legend.position = c(0.7, 0.7)) +
+               ylab(expression(paste("SRP increase rate (", h^{-1}, ")"))) + 
+               xlab(expression(paste("Added P-P", O[4]," (", mu, "mol ", g^{-1}, ")"))) +
+               ggtitle("A)"),
+             ggplot(SRP_preds, aes(SRP_o, Pred)) + geom_point(cex=6, aes(fill=Legend, shape=Legend), show.legend = F) +
+               theme_min + geom_abline(intercept = 0, slope=1, color="black") +
+               scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
+               scale_shape_manual(values = c(21, 22, 21, 22)) + 
+               theme(legend.title = element_blank(), legend.position = c(0.2, 0.7)) +
+               ylim(0,20) + xlim(0, 20) +
+               ylab(expression(paste("Predicted SRP (", mu, "mol ", g^{-1}, ")"))) +
+               xlab(expression(paste("Measured SRP (", mu, "mol ", g^{-1}, ")"))) +
+               ggtitle("B)"), nrow=1)
+# #Add to original data frame
+# ##Generate the general relationship
+# SRPslopes$Inhibitor<-SRPslopes$SRP_a
+# slope_calc<-lm(slope~Inhibitor, SRPslopes)
+# summary(slope_calc)
+# ##Apply to original data
+# edata$slope<-predict(slope_calc, newdata=edata)
+# 
+# #Run the competitive inhibition model again with SRP release over time accounted for
+# ##Load the function
+# source("CI_SRP.R")
+# ##Plesne catchment
+# ###Litter horizon
+# plo_cisrp<-CI_SRP(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter"))
+# plo_cisrp$Parameters
+# plo_cisrp$Goodness$Gfit
+# 
+# ###Organic topsoil
+# pla_cisrp<-CI_SRP(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil"))
+# pla_cisrp$Parameters
+# pla_cisrp$Goodness$Gfit
+# 
+# ##Certovo catchment
+# ###Litter horizon
+# co_cisrp<-CI_SRP(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter"))
+# co_cisrp$Parameters
+# co_cisrp$Goodness$Gfit
+# 
+# ###Organic topsoil
+# ca_cisrp<-CI_SRP(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil"))
+# ca_cisrp$Parameters
+# ca_cisrp$Goodness$Gfit
+# 
+# #Add results to a epredts data frame
+# epredts$v_srp<-NA
+# for(i in 1:nrow(epredts)){
+#   if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
+#     epredts$v_srp[i]<-plo_cisrp$Parameters[1]*epredts$Substrate[i]/(plo_cisrp$Parameters[2]*(1+epredts$InhibitorSRP[i]/plo_cisrp$Parameters[3]) + epredts$Substrate[i])
+#   }else{
+#     if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
+#       epredts$v_srp[i]<-pla_cisrp$Parameters[1]*epredts$Substrate[i]/(pla_cisrp$Parameters[2]*(1+epredts$InhibitorSRP[i]/pla_cisrp$Parameters[3]) + epredts$Substrate[i])
+#     }else{
+#       if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
+#         epredts$v_srp[i]<-co_cisrp$Parameters[1]*epredts$Substrate[i]/(co_cisrp$Parameters[2]*(1+epredts$InhibitorSRP[i]/co_cisrp$Parameters[3]) + epredts$Substrate[i])
+#       }else{
+#         epredts$v_srp[i]<-ca_cisrp$Parameters[1]*epredts$Substrate[i]/(ca_cisrp$Parameters[2]*(1+epredts$InhibitorSRP[i]/ca_cisrp$Parameters[3]) + epredts$Substrate[i])
+#       }
+#     }
+#   }
+# }
+# 
+# ###relative rates
+# epredts$v_srprel<-NA
+# for(l in unique(epredts$Horizon)){
+#   for(k in unique(epredts$Catchment)){
+#     for(i in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "Substrate"])){
+#       for(n in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "InhibitorSRP"])){
+#         epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_srprel"]<-
+#           epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_srp"]/
+#           epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==0), "v_srp"]*100
+#       }
+#     }
+#   }
+# }
+# 
+# ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
+#   facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+#   scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+#   xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
+#   geom_line(data=epredts, aes(InhibitorSRP, v_srprel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
+#   scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
+#   scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
 
 #############################################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Acknkowledging different initial Porg concentration~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Parameter values predictors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #############################################################################################################################################
-#Vizualize
-ggplot(subset(pdata, Time!=0), aes(SRP_a, log(Porg))) + geom_point(cex=6, aes(colour = as.factor(Horizon), shape=Catchment)) +
-  theme_min + stat_smooth(method=lm, se=F, aes(color=Horizon))
+#Values
+pars_all<-as.data.frame(rbind(plo_2ci$Parameters, pla_2ci$Parameters,
+                              co_2ci$Parameters, ca_2ci$Parameters))
+summary(plo_2ci$MCMC)
+pars_all$Catchment<-c("Plesne", "Plesne", "Certovo", "Certovo")
+pars_all$Horizon<-c("Litter", "Organic topsoil", "Litter", "Organic topsoil")
+pars_all$Legend<-c("Plesne - Litter", "Plesne - Organic topsoil", 
+                   "Certovo - Litter", "Certovo - Organic topsoil")
+#Predictors
+pars_all$pH<-c(4.51, 3.58, 4.06, 3.61)
+pars_all$MBP<-c(12.1, 9.9, 14.4, 5.8)
+pars_all$Pnahco3<-c(2.7, 1, 2.2, 0.6)
+pars_all$MBC<-c(863.4, 765.8, 851, 627.4)
+pars_all$MBN<-c(42.2, 28.3, 40.8, 28.7)
+pars_all$DOC<-c(71.1, 64.9, 90.4, 41.7)
+pars_all$TN<-c(111.8, 49.6, 127.7, 39.3)
+pars_all$Porg<-c(2.1, 1.1, 1.4,  1)
+pars_all$SRP<-c(3.2, 1.8, 3.3, 1.6)
+pars_all$Ctot<-c(47, 43, 49, 38)#in %
+pars_all$Ntot<-c(1.86, 1.58, 2.03, 1.53)#in %
+#Vmax1
+ggplot(pars_all, aes(pH, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Pnahco3, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(SRP, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBP, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ctot, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ntot, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBP, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN/MBP, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/MBP, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/SRP, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBN, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/Porg, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/SRP, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/Porg, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/SRP, Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+#Km1
+ggplot(pars_all, aes(pH, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Pnahco3, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(SRP, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBP, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ctot, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ntot, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBP, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN/MBP, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/MBP, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/SRP, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBN, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/Porg, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/SRP, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/Porg, Km1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/SRP, Km1)) + geom_point(cex=6, pch=21) + theme_min
+#Vmax2
+ggplot(pars_all, aes(pH, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Pnahco3, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(SRP, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBP, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ctot, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ntot, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBP, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN/MBP, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/MBP, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/SRP, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBN, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/Porg, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/SRP, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/Porg, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/SRP, Vmax2)) + geom_point(cex=6, pch=21) + theme_min
+#Km2
+ggplot(pars_all, aes(pH, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Pnahco3, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(SRP, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBP, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ctot, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ntot, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBP, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN/MBP, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/MBP, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/SRP, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBN, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/Porg, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/SRP, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/Porg, Km2)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/SRP, Km2)) + geom_point(cex=6, pch=21) + theme_min
+#Kic
+ggplot(pars_all, aes(pH, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Pnahco3, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(SRP, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBP, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ctot, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ntot, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ctot/Ntot, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBP, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN/MBP, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/MBP, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/SRP, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBN, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/Porg, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/SRP, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/Porg, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/SRP, Kic)) + geom_point(cex=6, pch=21) + theme_min
+#Vmax2/Vmax1
+ggplot(pars_all, aes(pH, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Pnahco3, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(SRP, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBP, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ctot, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Ntot, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBP, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN/MBP, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/MBP, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(Porg/SRP, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBN, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/Porg, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(DOC/SRP, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/Porg, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(TN/SRP, Vmax2/Vmax1)) + geom_point(cex=6, pch=21) + theme_min
 
-#Generate the relationship for each horizon separately
-pdata$Inhibitor<-pdata$SRP_a
-porg_o<-lm(log(Porg)~Inhibitor, pdata, subset = Horizon=="Litter")
-summary(porg_o)
+ggplot(pars_all, aes(DOC/SRP, Vmax2/Vmax1)) + geom_point(cex=6, aes(fill=Legend, shape=Legend)) + theme_min +
+  scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
+  scale_shape_manual(values = c(21, 22, 21, 22)) +
+  scale_y_log10(limits=c(0.1, 20), breaks=c(0.1, 1, 10)) + stat_smooth(method=lm, se=F, color="grey30") +
+  theme(legend.title = element_blank(), legend.position = c(0.7, 0.3)) +
+  ylab(expression(atop("Inhibited/Non-Inhibited", paste("enzyme activity")))) +
+  xlab("DOC/SRP (mol/mol)")
+  
+# ggplot(pars_all, aes(DOC/Porg, Kic)) + geom_point(cex=6, aes(fill=Legend, shape=Legend), show.legend = F) + theme_min +
+#  scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
+#  scale_shape_manual(values = c(21, 22, 21, 22)) + scale_y_log10(limits=c(3, 20))+
+#  theme(legend.title = element_blank(), legend.position = c(0.8, 0.2)) + ggtitle("B)") 
 
-porg_a<-lm(log(Porg)~Inhibitor, pdata, subset = Horizon=="Organic topsoil")
-summary(porg_a)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~End of the script~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-#Add to data frame
-edata$Porg<-NA
-edata[edata$Horizon=="Litter", "Porg"]<-exp(predict(porg_o, newdata=edata[edata$Horizon=="Litter", ]))
-edata[edata$Horizon!="Litter", "Porg"]<-exp(predict(porg_a, newdata=edata[edata$Horizon!="Litter", ]))
 
-#Run the competitive inhibition model again with competition between fluorescent substrate and Porg
-##Load the function
-source("CI_Porg2.R") #2. scenario
-##Plesne catchment
-###Litter horizon
-plo_cip2<-CI_Porg2(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter"))
-plo_cip2$Parameters
-plo_cip2$Goodness$Gfit
-
-###Organic topsoil
-pla_cip2<-CI_Porg2(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil"))
-pla_cip2$Parameters
-pla_cip2$Goodness$Gfit
-
-##Certovo catchment
-###Litter horizon
-co_cip2<-CI_Porg2(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter"))
-co_cip2$Parameters
-co_cip2$Goodness$Gfit
-
-###Organic topsoil
-ca_cip2<-CI_Porg2(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil"))
-ca_cip2$Parameters
-ca_cip2$Goodness$Gfit
-
-#Add results to a epredts data frame
-epredts$v_p2<-NA
-epredts$Porg<-NA
-epredts$Inhibitor<-epredts$InhibitorSRP
-epredts[epredts$Horizon=="Litter", "Porg"]<-exp(predict(porg_o, newdata=epredts[epredts$Horizon=="Litter", ]))
-epredts[epredts$Horizon!="Litter", "Porg"]<-exp(predict(porg_a, newdata=epredts[epredts$Horizon!="Litter", ]))
-
-for(i in 1:nrow(epredts)){
-  if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
-    epredts$v_p2[i]<-plo_cip2$Parameters[1]*epredts$Substrate[i]/
-      (plo_cip2$Parameters[2]*(1+epredts$InhibitorSRP[i]/plo_cip2$Parameters[3])*(1+epredts$Porg[i]/plo_cip2$Parameters[4]) + epredts$Substrate[i])
-  }else{
-    if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
-      epredts$v_p2[i]<-pla_cip2$Parameters[1]*epredts$Substrate[i]/
-        (pla_cip2$Parameters[2]*(1+epredts$InhibitorSRP[i]/pla_cip2$Parameters[3])*(1+epredts$Porg[i]/pla_cip2$Parameters[4]) + epredts$Substrate[i])
-    }else{
-      if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
-        epredts$v_p2[i]<-co_cip2$Parameters[1]*epredts$Substrate[i]/
-          (co_cip2$Parameters[2]*(1+epredts$InhibitorSRP[i]/co_cip2$Parameters[3])*(1+epredts$Porg[i]/co_cip2$Parameters[4]) + epredts$Substrate[i])
-      }else{
-        epredts$v_p2[i]<-ca_cip2$Parameters[1]*epredts$Substrate[i]/
-          (ca_cip2$Parameters[2]*(1+epredts$InhibitorSRP[i]/ca_cip2$Parameters[3])*(1+epredts$Porg[i]/ca_cip2$Parameters[4]) + epredts$Substrate[i])
-      }
-    }
-  }
-}
-
-###relative rates
-epredts$v_prel2<-NA
-for(l in unique(epredts$Horizon)){
-  for(k in unique(epredts$Catchment)){
-    for(i in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "Substrate"])){
-      for(n in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "InhibitorSRP"])){
-        epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_prel2"]<-
-          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_p2"]/
-          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==0), "v_p2"]*100
-      }
-    }
-  }
-}
-
-ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
-  facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
-  scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
-  xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
-  geom_line(data=epredts, aes(InhibitorSRP, v_prel2, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
-  scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
-  scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
-
+#############################################################################################################################################
+#############################################################################################################################################
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Additional tests~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#############################################################################################################################################
+#############################################################################################################################################
+#Not run
 #############################################################################################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Testing substrate preference~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #############################################################################################################################################
-##Load the function
-source("Substrate_preference.R")
-##Plesne catchment
-###Litter horizon
-plo_sp<-Substrate_preference(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter"))
-plo_sp$Parameters
-plo_sp$Goodness$Gfit
-
-###Organic topsoil
-pla_sp<-Substrate_preference(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil"))
-pla_sp$Parameters
-pla_sp$Goodness$Gfit
-
-##Certovo catchment
-###Litter horizon
-co_sp<-Substrate_preference(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter"))
-co_sp$Parameters
-co_sp$Goodness$Gfit
-
-###Organic topsoil
-ca_sp<-Substrate_preference(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil"))
-ca_sp$Parameters
-ca_sp$Goodness$Gfit
-
-
-#Add results to a epredts data frame
-epredts$v_sp<-NA
-
-for(i in 1:nrow(epredts)){
-  if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
-    epredts$v_sp[i]<-plo_sp$Parameters[1]*epredts$Substrate[i]/
-      (plo_sp$Parameters[2]*(1+epredts$Porg[i]/plo_sp$Parameters[3]) + epredts$Substrate[i])
-  }else{
-    if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
-      epredts$v_sp[i]<-pla_sp$Parameters[1]*epredts$Substrate[i]/
-        (pla_sp$Parameters[2]*(1+epredts$Porg[i]/pla_sp$Parameters[3]) + epredts$Substrate[i])
-    }else{
-      if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
-        epredts$v_sp[i]<-co_sp$Parameters[1]*epredts$Substrate[i]/
-          (co_sp$Parameters[2]*(1+epredts$Porg[i]/co_sp$Parameters[3]) + epredts$Substrate[i])
-      }else{
-        epredts$v_sp[i]<-ca_sp$Parameters[1]*epredts$Substrate[i]/
-          (ca_sp$Parameters[2]*(1+epredts$Porg[i]/ca_sp$Parameters[3]) + epredts$Substrate[i])
-      }
-    }
-  }
-}
-
-###relative rates
-epredts$v_sprel<-NA
-for(l in unique(epredts$Horizon)){
-  for(k in unique(epredts$Catchment)){
-    for(i in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "Substrate"])){
-      for(n in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "InhibitorSRP"])){
-        epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_sprel"]<-
-          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_sp"]/
-          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==0), "v_sp"]*100
-      }
-    }
-  }
-}
-
-ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
-  facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
-  scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
-  xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
-  geom_line(data=epredts, aes(InhibitorSRP, v_sprel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
-  scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
-  scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
-
-#############################################################################################################################################
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Testing the two pools of enzyme~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#############################################################################################################################################
-#Load the function
-source("two_epools.R")
-##Plesne catchment
-###Litter horizon
-plo_2ci<-two_epools(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter"))
-plo_2ci$Parameters
-plo_2ci$Goodness$Gfit
-
-###Organic topsoil
-pla_2ci<-two_epools(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil"))
-pla_2ci$Parameters
-pla_2ci$Goodness$Gfit
-
-##Certovo catchment
-###Litter horizon
-co_2ci<-two_epools(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter"))
-co_2ci$Parameters
-co_2ci$Goodness$Gfit
-
-###Organic topsoil
-ca_2ci<-two_epools(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil"))
-ca_2ci$Parameters
-ca_2ci$Goodness$Gfit
-
-###Add to a previous data frame
-epredts$v_two<-NA
-for(i in 1:nrow(epredts)){
-  if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
-    epredts$v_two[i]<-plo_2ci$Parameters[1]*epredts$Substrate[i]/(plo_2ci$Parameters[2] + epredts$Substrate[i])+
-      plo_2ci$Parameters[3]*epredts$Substrate[i]/(plo_2ci$Parameters[4]*(1+epredts$InhibitorSRP[i]/plo_2ci$Parameters[5]) + epredts$Substrate[i])
-  }else{
-    if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
-      epredts$v_two[i]<-pla_2ci$Parameters[1]*epredts$Substrate[i]/(pla_2ci$Parameters[2] + epredts$Substrate[i])+
-        pla_2ci$Parameters[3]*epredts$Substrate[i]/(pla_2ci$Parameters[4]*(1+epredts$InhibitorSRP[i]/pla_2ci$Parameters[5]) + epredts$Substrate[i])
-    }else{
-      if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
-        epredts$v_two[i]<-co_2ci$Parameters[1]*epredts$Substrate[i]/(co_2ci$Parameters[2] + epredts$Substrate[i])+
-          co_2ci$Parameters[3]*epredts$Substrate[i]/(co_2ci$Parameters[4]*(1+epredts$InhibitorSRP[i]/co_2ci$Parameters[5]) + epredts$Substrate[i])
-      }else{
-        epredts$v_two[i]<-ca_2ci$Parameters[1]*epredts$Substrate[i]/(ca_2ci$Parameters[2] + epredts$Substrate[i])+
-          ca_2ci$Parameters[3]*epredts$Substrate[i]/(ca_2ci$Parameters[4]*(1+epredts$InhibitorSRP[i]/ca_2ci$Parameters[5]) + epredts$Substrate[i])
-      }
-    }
-  }
-}
-
-###relative rates
-epredts$v_tworel<-NA
-for(l in unique(epredts$Horizon)){
-  for(k in unique(epredts$Catchment)){
-    for(i in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "Substrate"])){
-      for(n in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "InhibitorSRP"])){
-        epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_tworel"]<-
-          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_two"]/
-          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==0), "v_two"]*100
-      }
-    }
-  }
-}
-
-ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
-  facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
-  scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
-  xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
-  geom_line(data=epredts, aes(InhibitorSRP, v_tworel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
-  scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
-  scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
-
+# ##Load the function
+# source("Substrate_preference.R")
+# ##Plesne catchment
+# ###Litter horizon
+# plo_sp<-Substrate_preference(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter"))
+# plo_sp$Parameters
+# plo_sp$Goodness$Gfit
+# 
+# ###Organic topsoil
+# pla_sp<-Substrate_preference(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil"))
+# pla_sp$Parameters
+# pla_sp$Goodness$Gfit
+# 
+# ##Certovo catchment
+# ###Litter horizon
+# co_sp<-Substrate_preference(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter"))
+# co_sp$Parameters
+# co_sp$Goodness$Gfit
+# 
+# ###Organic topsoil
+# ca_sp<-Substrate_preference(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil"))
+# ca_sp$Parameters
+# ca_sp$Goodness$Gfit
+# 
+# 
+# #Add results to a epredts data frame
+# epredts$v_sp<-NA
+# 
+# for(i in 1:nrow(epredts)){
+#   if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
+#     epredts$v_sp[i]<-plo_sp$Parameters[1]*epredts$Substrate[i]/
+#       (plo_sp$Parameters[2]*(1+epredts$Porg[i]/plo_sp$Parameters[3]) + epredts$Substrate[i])
+#   }else{
+#     if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
+#       epredts$v_sp[i]<-pla_sp$Parameters[1]*epredts$Substrate[i]/
+#         (pla_sp$Parameters[2]*(1+epredts$Porg[i]/pla_sp$Parameters[3]) + epredts$Substrate[i])
+#     }else{
+#       if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
+#         epredts$v_sp[i]<-co_sp$Parameters[1]*epredts$Substrate[i]/
+#           (co_sp$Parameters[2]*(1+epredts$Porg[i]/co_sp$Parameters[3]) + epredts$Substrate[i])
+#       }else{
+#         epredts$v_sp[i]<-ca_sp$Parameters[1]*epredts$Substrate[i]/
+#           (ca_sp$Parameters[2]*(1+epredts$Porg[i]/ca_sp$Parameters[3]) + epredts$Substrate[i])
+#       }
+#     }
+#   }
+# }
+# 
+# ###relative rates
+# epredts$v_sprel<-NA
+# for(l in unique(epredts$Horizon)){
+#   for(k in unique(epredts$Catchment)){
+#     for(i in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "Substrate"])){
+#       for(n in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "InhibitorSRP"])){
+#         epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_sprel"]<-
+#           epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_sp"]/
+#           epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==0), "v_sp"]*100
+#       }
+#     }
+#   }
+# }
+# 
+# ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
+#   facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+#   scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+#   xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
+#   geom_line(data=epredts, aes(InhibitorSRP, v_sprel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
+#   scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
+#   scale_linetype_manual(values=c(rep("solid", 4), "longdash"))
+# 
+# #############################################################################################################################################
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Testing the two pools of enzyme with substrate preference~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# #############################################################################################################################################
+# #Assumption: one enzyme pool is highly specific and inhibited by the product, fluoresecent substrate and Porg competes for enzymes
+# #Load the function  
+# source("two_eppools.R")
+# ##Plesne catchment
+# ###Litter horizon
+# plo_2epci<-two_eppools(data=subset(edata, Catchment=="Plesne" & Horizon=="Litter" & time<90))
+# plo_2epci$Parameters
+# plo_2epci$Goodness$Gfit
+# 
+# ###Organic topsoil
+# pla_2epci<-two_eppools(data=subset(edata, Catchment=="Plesne" & Horizon=="Organic topsoil" & time<90))
+# pla_2epci$Parameters
+# pla_2epci$Goodness$Gfit
+# 
+# ##Certovo catchment
+# ###Litter horizon
+# co_2epci<-two_eppools(data=subset(edata, Catchment=="Certovo" & Horizon=="Litter" & time<90))
+# co_2epci$Parameters
+# co_2epci$Goodness$Gfit
+#  
+# ###Organic topsoil
+# ca_2epci<-two_eppools(data=subset(edata, Catchment=="Certovo" & Horizon=="Organic topsoil" & time<90))
+# ca_2epci$Parameters
+# ca_2epci$Goodness$Gfit
+# 
+# ###Add to a previous data frame
+# epredts$v_eptwo<-NA
+# for(i in 1:nrow(epredts)){
+#  if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
+#    epredts$v_eptwo[i]<-plo_2epci$Parameters[1]*epredts$Substrate[i]/
+#      (plo_2epci$Parameters[2]*(1+epredts$Porg[i]/plo_2epci$Parameters[3]) + epredts$Substrate[i])+
+#      plo_2epci$Parameters[4]*epredts$Substrate[i]/
+#      (plo_2epci$Parameters[5]*(1+epredts$Porg[i]/plo_2epci$Parameters[6])*
+#      (1+epredts$InhibitorSRP[i]/plo_2epci$Parameters[7]) + epredts$Substrate[i])
+#  }else{
+#    if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
+#      epredts$v_eptwo[i]<-pla_2epci$Parameters[1]*epredts$Substrate[i]/
+#        (pla_2epci$Parameters[2]*(1+epredts$Porg[i]/pla_2epci$Parameters[3]) + epredts$Substrate[i])+
+#        pla_2epci$Parameters[4]*epredts$Substrate[i]/
+#       (pla_2epci$Parameters[5]*(1+epredts$Porg[i]/pla_2epci$Parameters[6])*
+#        (1+epredts$InhibitorSRP[i]/pla_2epci$Parameters[7]) + epredts$Substrate[i])
+#    }else{
+#      if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
+#        epredts$v_eptwo[i]<-co_2epci$Parameters[1]*epredts$Substrate[i]/
+#          (co_2epci$Parameters[2]*(1+epredts$Porg[i]/co_2epci$Parameters[3]) + epredts$Substrate[i])+
+#          co_2epci$Parameters[4]*epredts$Substrate[i]/
+#          (co_2epci$Parameters[5]*(1+epredts$Porg[i]/co_2epci$Parameters[6]) *
+#          (1+epredts$InhibitorSRP[i]/co_2epci$Parameters[7]) + epredts$Substrate[i])
+#      }else{
+#        epredts$v_eptwo[i]<-ca_2epci$Parameters[1]*epredts$Substrate[i]/
+#          (ca_2epci$Parameters[2]*(1+epredts$Porg[i]/ca_2epci$Parameters[3]) + epredts$Substrate[i])+
+#          ca_2epci$Parameters[4]*epredts$Substrate[i]/
+#          (ca_2epci$Parameters[5]*(1+epredts$Porg[i]/ca_2epci$Parameters[6]) *
+#          (1+epredts$InhibitorSRP[i]/ca_2epci$Parameters[7]) + epredts$Substrate[i])
+#      }
+#    }
+#  }
+# }
+# 
+# ###relative rates
+# epredts$v_eptworel<-NA
+# for(l in unique(epredts$Horizon)){
+#  for(k in unique(epredts$Catchment)){
+#    for(i in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "Substrate"])){
+#      for(n in unique(epredts[(epredts$Horizon==l & epredts$Catchment==k), "InhibitorSRP"])){
+#        epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_eptworel"]<-
+#          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==n), "v_eptwo"]/
+#          epredts[(epredts$Horizon==l & epredts$Catchment==k & epredts$Substrate==i & epredts$InhibitorSRP==0), "v_eptwo"]*100
+#      }
+#    }
+#  }
+# }
+# 
+# ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
+#  facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+#  scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+#  xlim(0, 16) + geom_errorbar(aes(ymin=v5rel-v5rel.se, ymax=v5rel+v5rel.se), width=0.01) +
+#  geom_line(data=epredts, aes(InhibitorSRP, v_eptworel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2) +
+#  scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
+#  scale_linetype_manual(values=c(rep("solid", 4), "longdash"))

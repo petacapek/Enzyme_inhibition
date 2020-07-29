@@ -1,36 +1,33 @@
-CI_Porg2<-function(data, parameters){
+CI_model<-function(data, parameters){
   
   #Define the model
-  CI_Porg_model<-function(time, state, pars){
+  CI_model<-function(time, state, pars){
     
     with(as.list(c(state, pars)),{
       
       #Fluorescent product/substrate
-      dPf<-Vmax*S/(Kmf*(1+SRP/Kic)*(1 + Porg/Kmorg) + S)#fluorescent product
-      dS<--Vmax*S/(Kmf*(1+SRP/Kic)*(1 + Porg/Kmorg) + S)
+      dPf<-Vmax*S/(Km*(1+SRP/Kic) + S)#fluorescent product
+      dS<--Vmax*S/(Km*(1+SRP/Kic) + S)
       
       #SRP/Porg
-      dSRP<-Vmax*Porg/(Kmorg*(1+SRP/Kic)*(1 + Pf/Kmf) + Porg) + 
-        Vmax*S/(Kmf*(1+SRP/Kic)*(1 + Porg/Kmorg) + S)#SRP
-      dPorg<--Vmax*Porg/(Kmorg*(1+SRP/Kic)*(1 + Pf/Kmf) + Porg)
-                 
-      return(list(c(dPf, dS, dSRP, dPorg)))
-                 
+      dSRP<-Vmax*S/(Km*(1+SRP/Kic) + S)#SRP
+      
+      return(list(c(dPf, dS, dSRP)))
+      
     })
   }
   
   #Calculate goodness of correspondence
   goodness<-function(x){
     yhat<-data.frame(time = numeric(), Pred=numeric(), Product=numeric(), Substrate=numeric(), InhibitorSRP=numeric(),
-                     Catchment=character(), Horizon=character(), SRP=numeric(), Porg=numeric())
+                     Catchment=character(), Horizon=character(), SRP=numeric())
     
     for(i in unique(data$Substrate)){
       for(n in unique(data$InhibitorSRP)){
-        out<-as.data.frame(ode(y=c(Pf=0, S=i, SRP=n,
-                                   Porg=mean(data[(data$Substrate==i & data$InhibitorSRP==n), "Porg"])), parms = c(Vmax=x[1], Kmf=x[2], Kic=x[3], Kmorg=x[4]), 
-                               CI_Porg_model, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"])))))  
-        out<-out[, c("time", "Pf", "SRP", "Porg")]
-        colnames(out)<-c("time", "Pred", "SRP", "Porg")
+        out<-as.data.frame(ode(y=c(Pf=0, S=i, SRP=n), parms = c(Vmax=x[1], Km=x[2], Kic=x[3]), 
+                               CI_model, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"])))))  
+        out<-out[, c("time", "Pf", "SRP")]
+        colnames(out)<-c("time", "Pred", "SRP")
         outm<-merge(out, data[(data$Substrate==i & data$InhibitorSRP==n), c("time", "Product")], by = c("time"))
         outm$Substrate<-rep(i, times=nrow(outm))
         outm$InhibitorSRP<-rep(n, times=nrow(outm))
@@ -51,6 +48,7 @@ CI_Porg2<-function(data, parameters){
     goodness_out<-list(Yhat=yhat, Gfit=Gfit)
     return(goodness_out)
   }
+  
   
   out_all<-goodness(as.numeric(parameters))
   

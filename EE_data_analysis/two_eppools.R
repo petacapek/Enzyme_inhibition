@@ -1,15 +1,24 @@
-two_epools<-function(data){
+two_eppools<-function(data){
   
   #Define the model
-  two_e_model<-function(time, state, pars){
+  two_ep_model<-function(time, state, pars){
     
     with(as.list(c(state, pars)),{
       
-      dPs<-(Vmax1*S/(Km1 + S))+(Vmax2*S/(Km2*(1+Pt/Kic) + S))#fluorescent product
-      dPt<-(Vmax1*S/(Km1 + S))+(Vmax2*S/(Km2*(1+Pt/Kic) + S))#SRP
-      dS<--(Vmax1*S/(Km1 + S))-(Vmax2*S/(Km2*(1+Pt/Kic) + S))
+      #Fluoresecent substrate/product/SRP
+      E1f=Vmax1*Sfl/(Km1*(1+Porg/Korg1) + Sfl)
+      E2f=Vmax2*Sfl/(Km2*(1+SRP/Kic)*(1+Porg/Korg2) + Sfl)
+      #Porg/SRP
+      E1s=Vmax1*Porg/(Korg1*(1+Sfl/Km1) + Porg)
+      E2s=Vmax2*Porg/(Korg2*(1+SRP/Kic)*(1+Sfl/Km2) + Porg)
+      
+      #Derivatives
+      dPfl<-E1f + E2f
+      dSfl<--E1f - E2f
+      dSRP<-E1f + E2f + E1s + E2s
+      
                  
-      return(list(c(dPs, dPt, dS)))
+      return(list(c(dPfl, dSfl, dSRP)))
                  
     })
   }
@@ -21,12 +30,14 @@ two_epools<-function(data){
     yhat<-data.frame(Pred=numeric(), Product=numeric(), Substrate=numeric())
     for(i in unique(data$Substrate)){
       for(n in unique(data$InhibitorSRP)){
-        out<-as.data.frame(ode(y=c(Ps=0, Pt=n, S=i), parms = c(Vmax1=x[1], Km1=x[2], Vmax2=x[3], Km2=x[4], Kic=x[5]), 
-                           two_e_model, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"]))))) 
+        out<-as.data.frame(ode(y=c(Pfl=0, Sfl=i, SRP=n), 
+                               parms = c(Vmax1=x[1], Km1=x[2], Korg1=x[3], Vmax2=x[4], Km2=x[5], Korg2=x[6], Kic=x[7],
+                                         Porg=mean(data[(data$Substrate==i & data$InhibitorSRP==n), "Porg"])), 
+                           two_ep_model, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"]))))) 
       
-      out<-out[, c("time", "Ps")]
+      out<-out[, c("time", "Pfl")]
       colnames(out)<-c("time", "Pred")
-      outm<-merge(out, data[(data$Substrate==i & data$InhibitorSRP==n), c("time", "Product", "Substrate", "InhibitorSRP")], by = c("time"))
+      outm<-merge(out, data[(data$Substrate==i & data$InhibitorSRP==n), c("time", "Product", "Substrate")], by = c("time"))
       yhat<-rbind(yhat, outm)
       }
     }
@@ -36,24 +47,25 @@ two_epools<-function(data){
   }
   
   #Use MCMC to define ranges of possible model parameters
-  par_mcmc<-modMCMC(f=cost, p=c(1e-2, 20, 1e-2, 20, 20), 
-                    lower=c(1e-3, 1e-2, 1e-3, 1e-2, 1e-2),
-                    upper=c(100, 500, 100, 500, 500), niter=10000)
+  par_mcmc<-modMCMC(f=cost, p=c(1e-2, 20, 20, 1e-2, 20, 20, 20), 
+                    lower=c(1e-3, 1e-2, 1e-2, 1e-3, 1e-2, 1e-2, 1e-2),
+                    upper=c(100, 500, 500, 100, 500, 500, 500), niter=10000)
   #lower and upper limits for parameters are extracted
   pl<-as.numeric(summary(par_mcmc)["min",])
   pu<-as.numeric(summary(par_mcmc)["max",])
   
   #these limits are used to find global optimum by DEoptim
   # opt_par<-DEoptim(fn=cost, lower=pl, upper=pu, 
-  #                  control = c(itermax = 10000, steptol = 50, reltol = 1e-8, 
-  #                              trace=FALSE, strategy=3, NP=250))
+  #                 control = c(itermax = 10000, steptol = 50, reltol = 1e-8, 
+  #                             trace=FALSE, strategy=3, NP=250))
+  
   
   #these limits are used to find global optimum by rgenoud
-  # opt_par<-genoud(fn=cost, print.level = 0, pop.size=1e6, max=FALSE, nvars=6, Domains = cbind(pl, pu),
-  #                 boundary.enforcement = 2)
+  #opt_par<-genoud(fn=cost, print.level = 0, pop.size=1e6, max=FALSE, nvars=6, Domains = cbind(pl, pu),
+                  #boundary.enforcement = 2)
   
   #these limits are used to find global optimum by ABCotpim
-  opt_par<-abc_optim(fn=cost, par = as.numeric(summary(par_mcmc)["mean",]), lb=pl, ub=pu, maxCycle = 1e6)
+  opt_par<-abc_optim(fn=cost, par=as.numeric(summary(par_mcmc)["mean",]), lb=pl, ub=pu, maxCycle = 1e6)
   
   #Calculate goodness of correspondence
   goodness<-function(x){
@@ -62,9 +74,11 @@ two_epools<-function(data){
     
     for(i in unique(data$Substrate)){
       for(n in unique(data$InhibitorSRP)){
-        out<-as.data.frame(ode(y=c(Ps=0, Pt=n, S=i), parms = c(Vmax1=x[1], Km1=x[2], Vmax2=x[3], Km2=x[4], Kic=x[5]), 
-                           two_e_model, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"]))))) 
-        out<-out[, c("time", "Ps")]
+        out<-as.data.frame(ode(y=c(Pfl=0, Sfl=i, SRP=n), 
+                               parms = c(Vmax1=x[1], Km1=x[2], Korg1=x[3], Vmax2=x[4], Km2=x[5], Korg2=x[6], Kic=x[7],
+                                         Porg=mean(data[(data$Substrate==i & data$InhibitorSRP==n), "Porg"])), 
+                               two_ep_model, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"]))))) 
+        out<-out[, c("time", "Pfl")]
         colnames(out)<-c("time", "Pred")
         outm<-merge(out, data[(data$Substrate==i & data$InhibitorSRP==n), c("time", "Product")], by = c("time"))
         outm$Substrate<-rep(i, times=nrow(outm))
@@ -87,9 +101,9 @@ two_epools<-function(data){
     return(goodness_out)
   }
   
-  #Parameters<-opt_par$optim$bestmem#Deoptim algorithm
+  #Parameters<-opt_par$optim$bestmem#DEoptim algorithm
   Parameters<-opt_par$par#genoud/ABC algorithm
-  names(Parameters)<-c("Vmax1", "Km1", "Vmax2", "Km2", "Kic")
+  names(Parameters)<-c("Vmax1", "Km1", "Korg1", "Vmax2", "Km2", "Korg2", "Kic")
   
   out_all<-list(Parameters = Parameters,
                 #Goodness = goodness(as.numeric(opt_par$optim$bestmem)),#DEoptim algorithm
