@@ -5,14 +5,17 @@ CI_Porg<-function(data){
     
     with(as.list(c(state, pars)),{
       
+      #equations
+      Ef=Vmax*S/(Kmf*(1+SRP/Kic)*(1 + Porg/Kmorg) + S)#fluorescent product
+      Es=Vmax*Porg/(Kmorg*(1+SRP/Kic)*(1 + S/Kmf) + Porg)
+      
       #Fluorescent product/substrate
-      dPf<-Vmax*S/(Kmf*(1+SRP/Kic)*(1 + Porg/Kmorg) + S)#fluorescent product
-      dS<--Vmax*S/(Kmf*(1+SRP/Kic)*(1 + Porg/Kmorg) + S)
+      dPf<-Ef
+      dS<--Ef
       
       #SRP/Porg
-      dSRP<-Vmax*Porg/(Kmorg*(1+SRP/Kic)*(1 + Pf/Kmf) + Porg) + 
-        Vmax*S/(Kmf*(1+SRP/Kic)*(1 + Porg/Kmorg) + S)#SRP
-      dPorg<--Vmax*Porg/(Kmorg*(1+SRP/Kic)*(1 + Pf/Kmf) + Porg)
+      dSRP<-Ef + Es
+      dPorg<--Es
                  
       return(list(c(dPf, dS, dSRP, dPorg)))
                  
@@ -50,9 +53,9 @@ CI_Porg<-function(data){
   pu<-as.numeric(summary(par_mcmc)["max",])
   
   #these limits are used to find global optimum by DEoptim
-  # opt_par<-DEoptim(fn=cost, lower=pl, upper=pu, 
-  #                 control = c(itermax = 10000, steptol = 50, reltol = 1e-8, 
-  #                             trace=FALSE, strategy=3, NP=250))
+  opt_par<-DEoptim(fn=cost, lower=pl, upper=pu, 
+                 control = c(itermax = 10000, steptol = 50, reltol = 1e-8, 
+                             trace=FALSE, strategy=3, NP=250))
   
   
   #these limits are used to find global optimum by rgenoud
@@ -60,7 +63,7 @@ CI_Porg<-function(data){
   #boundary.enforcement = 2)
   
   #these limits are used to find global optimum by ABCotpim
-  opt_par<-abc_optim(fn=cost, par=as.numeric(summary(par_mcmc)["mean",]), lb=pl, ub=pu, maxCycle = 1e6)
+  #opt_par<-abc_optim(fn=cost, par=as.numeric(summary(par_mcmc)["mean",]), lb=pl, ub=pu, maxCycle = 1e6)
   
   #Calculate goodness of correspondence
   goodness<-function(x){
@@ -95,13 +98,13 @@ CI_Porg<-function(data){
     return(goodness_out)
   }
   
-  #Parameters<-opt_par$optim$bestmem#DEoptim algorithm
-  Parameters<-opt_par$par#genoud/ABC algorithm
+  Parameters<-opt_par$optim$bestmem#DEoptim algorithm
+  #Parameters<-opt_par$par#genoud/ABC algorithm
   names(Parameters)<-c("Vmax", "Kmf", "Kic", "Kmorg")
   
   out_all<-list(Parameters = Parameters,
-                #Goodness = goodness(as.numeric(opt_par$optim$bestmem)),#DEoptim algorithm
-                Goodness = goodness(as.numeric(opt_par$par)),#genoud/ABC algorithm
+                Goodness = goodness(as.numeric(opt_par$optim$bestmem)),#DEoptim algorithm
+                #Goodness = goodness(as.numeric(opt_par$par)),#genoud/ABC algorithm
                 MCMC = par_mcmc)
   
   return(out_all)

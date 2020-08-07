@@ -10,7 +10,7 @@ Substrate_preference<-function(data){
       dS<--Vmax*S/(Kmf*(1 + Porg/Kmorg) + S)
       
       #Porg
-      dPorg<--Vmax*Porg/(Kmorg*(1 + Pf/Kmf) + Porg)
+      dPorg<--Vmax*Porg/(Kmorg*(1 + S/Kmf) + Porg)
                  
       return(list(c(dPf, dS, dPorg)))
                  
@@ -44,13 +44,20 @@ Substrate_preference<-function(data){
                     lower=c(1e-3, 1e-2, 1e-2),
                     upper=c(100, 500, 500), niter=10000)
   #lower and upper limits for parameters are extracted
-  pl<-summary(par_mcmc)["min",]
-  pu<-summary(par_mcmc)["max",]
+  pl<-as.numeric(summary(par_mcmc)["min",])
+  pu<-as.numeric(summary(par_mcmc)["max",])
   
   #these limits are used to find global optimum by DEoptim
-  opt_par<-DEoptim(fn=cost, lower=pl, upper=pu, 
-                   control = c(itermax = 10000, steptol = 50, reltol = 1e-8, 
-                               trace=FALSE, strategy=3, NP=250))
+  # opt_par<-DEoptim(fn=cost, lower=pl, upper=pu, 
+  #                  control = c(itermax = 10000, steptol = 50, reltol = 1e-8, 
+  #                              trace=FALSE, strategy=3, NP=250))
+  
+  #these limits are used to find global optimum by rgenoud
+  # opt_par<-genoud(fn=cost, print.level = 0, pop.size=1e6, max=FALSE, nvars=6, Domains = cbind(pl, pu),
+  #                 boundary.enforcement = 2)
+  
+  #these limits are used to find global optimum by ABCotpim
+  opt_par<-abc_optim(fn=cost, par = as.numeric(summary(par_mcmc)["mean",]), lb=pl, ub=pu, maxCycle = 1e6)
   
   #Calculate goodness of correspondence
   goodness<-function(x){
@@ -74,9 +81,9 @@ Substrate_preference<-function(data){
     yhat$Catchment<-rep(data$Catchment[1], times=nrow(yhat))
     yhat$Horizon<-rep(data$Horizon[1], times=nrow(yhat))
     
-    SSres=with(yhat, sum(((Product-Pred)^2), na.rm = T))
-    SStot=with(yhat, sum(((Product-mean(Product, na.rm = T))^2), na.rm = T))
-    ll=with(yhat, -sum(((Product-Pred)^2), na.rm = T)/2/(sd(Product, na.rm = T)^2))
+    SSres=with(yhat, sum((((Product-Pred)/Substrate)^2), na.rm = T))
+    SStot=with(yhat, sum((((Product-mean(Product, na.rm = T))/Substrate)^2), na.rm = T))
+    ll=with(yhat, -sum((((Product-Pred)/Substrate)^2), na.rm = T)/2/(sd(Product/Substrate, na.rm = T)^2))
     R2<-1-SSres/SStot
     N<-length(x)
     AIC<-2*N-2*ll
@@ -85,11 +92,13 @@ Substrate_preference<-function(data){
     return(goodness_out)
   }
   
-  Parameters<-opt_par$optim$bestmem
+  #Parameters<-opt_par$optim$bestmem#Deoptim algorithm
+  Parameters<-opt_par$par#genoud/ABC algorithm
   names(Parameters)<-c("Vmax", "Kmf", "Kmorg")
   
   out_all<-list(Parameters = Parameters,
-                Goodness = goodness(as.numeric(opt_par$optim$bestmem)),
+                #Goodness = goodness(as.numeric(opt_par$optim$bestmem)),#DEoptim algorithm
+                Goodness = goodness(as.numeric(opt_par$par)),#genoud/ABC algorithm
                 MCMC = par_mcmc)
   
   return(out_all)
