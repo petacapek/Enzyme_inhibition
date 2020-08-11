@@ -488,8 +488,8 @@ ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = 
   scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
   scale_linetype_manual(values=c(rep("solid", 4), "longdash")) +
   ylab("Relative effect of inhibitor  (%)") +
-  xlab(expression(paste("Initial SRP (", mu, "mol ", ~g^{-1}, ")"))) +
-  labs(fill=expression(paste("Substrate ( ", mu, "mol", g^{-1}, ")"))) +
+  xlab(expression(paste("Initial SRP (", mu, "mol ", g^{-1}, ")"))) +
+  labs(fill=expression(paste("Substrate (", mu, "mol ", g^{-1}, ")"))) +
   theme(legend.position = c(0.35,0.3))
 
 #Piecewise linear regression
@@ -837,23 +837,23 @@ viz_inh$activity<-NA
 
 for(i in 1:nrow(viz_inh)){
   if(viz_inh$Legend[i]=="Plešné - Litter"){
-    viz_inh$activity[i]<-(100*0.15/(plo_cip$Parameters[2]*
+    viz_inh$activity[i]<-(100*plo_cip$Parameters[1]/(plo_cip$Parameters[2]*
                                      (1+viz_inh$SRP[i]/plo_cip$Parameters[3])*
-                                     (1+viz_inh$DOP[i]/plo_cip$Parameters[4]) + 100))/(100*0.15/(plo_cip$Parameters[2]+ 100))*100
+                                     (1+viz_inh$DOP[i]/plo_cip$Parameters[4]) + 100))/(100*plo_cip$Parameters[1]/(plo_cip$Parameters[2]+ 100))*100
   }else{
     if(viz_inh$Legend[i]=="Plešné - Organic topsoil"){
-      viz_inh$activity[i]<-(100*0.15/(pla_cip$Parameters[2]*
+      viz_inh$activity[i]<-(100*pla_cip$Parameters[1]/(pla_cip$Parameters[2]*
                                        (1+viz_inh$SRP[i]/pla_cip$Parameters[3])*
-                                       (1+viz_inh$DOP[i]/pla_cip$Parameters[4]) + 100))/(100*0.15/(pla_cip$Parameters[2]+ 100))*100
+                                       (1+viz_inh$DOP[i]/pla_cip$Parameters[4]) + 100))/(100*pla_cip$Parameters[1]/(pla_cip$Parameters[2]+ 100))*100
     }else{
       if(viz_inh$Legend[i]=="Čertovo - Litter"){
-        viz_inh$activity[i]<-(100*0.15/(co_cip$Parameters[2]*
+        viz_inh$activity[i]<-(100*co_cip$Parameters[1]/(co_cip$Parameters[2]*
                                          (1+viz_inh$SRP[i]/co_cip$Parameters[3])*
-                                         (1+viz_inh$DOP[i]/co_cip$Parameters[4]) + 100))/(100*0.15/(co_cip$Parameters[2]+ 100))*100
+                                         (1+viz_inh$DOP[i]/co_cip$Parameters[4]) + 100))/(100*co_cip$Parameters[1]/(co_cip$Parameters[2]+ 100))*100
       }else{
-        viz_inh$activity[i]<-(100*0.15/(ca_cip$Parameters[2]*
+        viz_inh$activity[i]<-(100*ca_cip$Parameters[1]/(ca_cip$Parameters[2]*
                                          (1+viz_inh$SRP[i]/ca_cip$Parameters[3])*
-                                         (1+viz_inh$DOP[i]/ca_cip$Parameters[4]) + 100))/(100*0.15/(ca_cip$Parameters[2]+ 100))*100
+                                         (1+viz_inh$DOP[i]/ca_cip$Parameters[4]) + 100))/(100*ca_cip$Parameters[1]/(ca_cip$Parameters[2]+ 100))*100
       }
     }
   }
@@ -958,12 +958,12 @@ ggplot(pars_all, aes(DOC, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(TN, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(DON, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(NH4, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
-ggplot(pars_all, aes(NO3, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(NO3, log(Kmorg))) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(NH4+NO3, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(MBC/MBP, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(MBN/MBP, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(Porg/MBP, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
-ggplot(pars_all, aes((Porg/SRP), log(Kmorg))) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes((Porg/SRP), (Kmorg))) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(MBC/MBN, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(DOC/Porg, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(DOC/SRP, Kmorg)) + geom_point(cex=6, pch=21) + theme_min
@@ -1027,10 +1027,10 @@ ggplot(pars_all, aes(NH4, Kic)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(NO3, Kic)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(NH4+NO3, Kic)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(MBC/MBP, Kic)) + geom_point(cex=6, pch=21) + theme_min
-ggplot(pars_all, aes(MBN/MBP, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBN/MBP, (Kic))) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(Porg/MBP, Kic)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(Porg/SRP, Kic)) + geom_point(cex=6, pch=21) + theme_min
-ggplot(pars_all, aes(MBC/MBN, Kic)) + geom_point(cex=6, pch=21) + theme_min
+ggplot(pars_all, aes(MBC/MBN, log(Kic))) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(DOC/Porg, Kic)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(DOC/SRP, Kic)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(TN/Porg, Kic)) + geom_point(cex=6, pch=21) + theme_min
@@ -1048,30 +1048,32 @@ ggplot(pars_all, aes(TN/SRP, Vmax)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(MBP, Kmf)) + geom_point(cex=6, pch=21) + theme_min
 ggplot(pars_all, aes(pH, Kic)) + geom_point(cex=6, pch=21, aes(fill=Legend)) + theme_min
 
-ggplot(pars_all, aes((TN)/SRP, Vmax)) + geom_point(cex=6, aes(fill=Legend, shape=Legend), show.legend = F) + theme_min +
-  scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
-  scale_shape_manual(values = c(21, 22, 21, 22)) +
-  stat_smooth(method=lm, se=F, color="grey30") +
-  ylim(0, 0.20) +
-  theme(legend.title = element_blank(), legend.position = c(0.7, 0.3)) +
-  ylab(expression(paste(V[MAX], " (",mu, "mol ", g^{-1},min^{-1}, ")" ))) +
-  xlab("TN/SRP (mol/mol)") + ggtitle(("A)"))
-ggplot(pars_all, aes(MBP, Kmf)) + geom_point(cex=6, aes(fill=Legend, shape=Legend), show.legend = F) + theme_min +
-  scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
-  scale_shape_manual(values = c(21, 22, 21, 22)) +
-  stat_smooth(method=lm, se=F, color="grey30") +
-  ylim(0, 16) + xlim(5, 15) +
-  theme(legend.title = element_blank(), legend.position = c(0.7, 0.3)) +
-  ylab(expression(paste(K[M-MUB-P], " (",mu, "mol ", g^{-1}, ")" ))) +
-  xlab(expression(paste("MBP (", mu, "mol ", g^{-1}, ")"))) + ggtitle(("B)"))
-ggplot(pars_all, aes(pH, Kic)) + geom_point(cex=6, aes(fill=Legend, shape=Legend), show.legend = F) + theme_min +
-  scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
-  scale_shape_manual(values = c(21, 22, 21, 22)) +
-  stat_smooth(method=lm, se=F, color="grey30") +
-  ylim(0, 180) + xlim(3.5, 4.6) +
-  theme(legend.title = element_blank(), legend.position = c(0.7, 0.3)) +
-  ylab(expression(paste("Kic (",mu, "mol ", g^{-1}, ")" ))) +
-  xlab("pH") + ggtitle(("C)"))
+grid.arrange(ggplot(pars_all, aes((NH4+NO3)/SRP, Vmax)) + geom_point(cex=6, aes(fill=Legend, shape=Legend), show.legend = F) + theme_min +
+               scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
+               scale_shape_manual(values = c(21, 22, 21, 22)) +
+               stat_smooth(method=lm, se=F, color="grey30") +
+               ylim(0, 0.20) +
+               theme(legend.title = element_blank(), legend.position = c(0.7, 0.3)) +
+               ylab(expression(paste(V[MAX], " (",mu, "mol ", g^{-1},min^{-1}, ")" ))) +
+               xlab(expression(paste("(N",H[4]^{"+"}," + N", O[3]^{"-"}, ")/SRP (mol/mol)"))) + ggtitle(("A)")),
+             ggplot(pars_all, aes(MBP, Kmf)) + geom_point(cex=6, aes(fill=Legend, shape=Legend), show.legend = F) + theme_min +
+               scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
+               scale_shape_manual(values = c(21, 22, 21, 22)) +
+               stat_smooth(method=lm, se=F, color="grey30") +
+               ylim(0, 16) + xlim(5, 15) +
+               theme(legend.title = element_blank(), legend.position = c(0.7, 0.3)) +
+               ylab(expression(paste(K[M-MUB-P], " (",mu, "mol ", g^{-1}, ")" ))) +
+               xlab(expression(paste("MBP (", mu, "mol ", g^{-1}, ")"))) + ggtitle(("B)")),
+             ggplot(pars_all, aes(MBC/MBN, Kic)) + geom_point(cex=6, aes(fill=Legend, shape=Legend), show.legend = T) + theme_min +
+               scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
+               scale_shape_manual(values = c(21, 22, 21, 22)) +
+               stat_smooth(method=lm, se=F, color="grey30") +
+               scale_y_log10(limits=c(10, 200), breaks=c(10, 30, 70, 200))+
+               theme(legend.title = element_blank(), legend.position = c(0.7, 0.75)) +
+               ylab(expression(paste("Kic (",mu, "mol ", g^{-1}, ")" ))) +
+               xlab("MBC/MBN (mol/mol)") + ggtitle(("C)")), nrow=3)
+  
+
 
 # ggplot(pars_all, aes(DOC/Porg, Kic)) + geom_point(cex=6, aes(fill=Legend, shape=Legend), show.legend = F) + theme_min +
 #  scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
@@ -1119,9 +1121,12 @@ ggplot(rbind(pdata_e1, pdata_e2), aes(Time, SRP_orel)) + geom_point(cex=6, pch=2
   theme_min + #scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
   stat_smooth(method = lm, se=F, aes(colour=as.factor(SRP_a2)))
 
-ggplot(pdata, aes(Time, log(SRP_o))) + geom_point(cex=6, pch=21, aes(fill = as.factor(SRP_a2))) +
+ggplot(subset(pdata, outlier=="NO"), aes(Time, log(SRP_o))) + geom_point(cex=6, pch=21, aes(fill = as.factor(SRP_a2))) +
   facet_grid(.~Legend) + theme_min + #scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
-  stat_smooth(method = lm, se=F, aes(colour=as.factor(SRP_a2)))
+  stat_smooth(method = lm, se=F, aes(colour=as.factor(SRP_a2)), show.legend = F) +
+  ylab(expression(paste("Measured SRP (", mu, "mol ", g^{-1}, ")"))) + xlab("Time (hours)") + 
+  labs(fill=expression(paste("Added P-P",O[4], "(", mu, "mol ", g^{-1}, ")")))
+
 
 #Mark the outliers
 pdata$outlier<-c("NO")
