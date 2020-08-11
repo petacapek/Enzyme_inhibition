@@ -1,4 +1,4 @@
-CI_hill<-function(data){
+CI_SI<-function(data){
   
   #Define the model
   CI_hill<-function(time, state, pars){
@@ -6,9 +6,9 @@ CI_hill<-function(data){
     with(as.list(c(state, pars)),{
       
       #Fluorescent product/substrate
-      dPf<-Vmax*S^n/(Km*(1+Pt/Kic) + S^n)#fluorescent product
-      dS<--Vmax*S^n/(Km*(1+Pt/Kic) + S^n)
-      dPt<-Vmax*S^n/(Km*(1+Pt/Kic) + S^n)#P-PO4
+      dPf<-Vmax*S/(Km*(1+Pt/Kic) + S + S^2/Ki)#fluorescent product
+      dS<--Vmax*S/(Km*(1+Pt/Kic) + S + S^2/Ki)
+      dPt<-Vmax*S/(Km*(1+Pt/Kic) + S + S^2/Ki)#P-PO4
       
       return(list(c(dPf, dS, dPt)))
                  
@@ -23,7 +23,7 @@ CI_hill<-function(data){
     for(i in unique(data$Substrate)){
       for(n in unique(data$InhibitorSRP)){
         out<-as.data.frame(ode(y=c(Pf=0, S=i, Pt=n), 
-                               parms = c(Vmax=x[1], Km=x[2], Kic=x[3], n=x[4]), 
+                               parms = c(Vmax=x[1], Km=x[2], Kic=x[3], Ki=x[4]), 
                                CI_hill, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"]))))) 
       
       out<-out[, c("time", "Pf")]
@@ -38,17 +38,17 @@ CI_hill<-function(data){
   }
   
   #Use MCMC to define ranges of possible model parameters
-  par_mcmc<-modMCMC(f=cost, p=c(1e-2, 20, 20, 1), 
+  par_mcmc<-modMCMC(f=cost, p=c(1e-2, 20, 20, 20), 
                     lower=c(1e-3, 1e-2, 1e-2, 0.01),
-                    upper=c(100, 500, 500, 10), niter=10000)
+                    upper=c(100, 500, 500, 500), niter=10000)
   #lower and upper limits for parameters are extracted
   pl<-as.numeric(summary(par_mcmc)["min",])
   pu<-as.numeric(summary(par_mcmc)["max",])
   
   #these limits are used to find global optimum by DEoptim
-  opt_par<-DEoptim(fn=cost, lower=pl, upper=pu, 
-                control = c(itermax = 10000, steptol = 50, reltol = 1e-8, 
-                            trace=FALSE, strategy=3, NP=250))
+  # opt_par<-DEoptim(fn=cost, lower=pl, upper=pu, 
+  #               control = c(itermax = 10000, steptol = 50, reltol = 1e-8, 
+  #                           trace=FALSE, strategy=3, NP=250))
   
   
   #these limits are used to find global optimum by rgenoud
@@ -56,7 +56,7 @@ CI_hill<-function(data){
   #boundary.enforcement = 2)
   
   #these limits are used to find global optimum by ABCotpim
-  #opt_par<-abc_optim(fn=cost, par=as.numeric(summary(par_mcmc)["mean",]), lb=pl, ub=pu, maxCycle = 1e6)
+  opt_par<-abc_optim(fn=cost, par=as.numeric(summary(par_mcmc)["mean",]), lb=pl, ub=pu, maxCycle = 1e6)
   
   #Calculate goodness of correspondence
   goodness<-function(x){
@@ -66,7 +66,7 @@ CI_hill<-function(data){
     for(i in unique(data$Substrate)){
       for(n in unique(data$InhibitorSRP)){
         out<-as.data.frame(ode(y=c(Pf=0, S=i, Pt=n), 
-                               parms = c(Vmax=x[1], Km=x[2], Kic=x[3], n=x[4]), 
+                               parms = c(Vmax=x[1], Km=x[2], Kic=x[3], Ki=x[4]), 
                                CI_hill, times=sort(unique((data[(data$Substrate==i & data$InhibitorSRP==n), "time"]))))) 
         out<-out[, c("time", "Pf", "Pt")]
         colnames(out)<-c("time", "Pred", "SRP")
@@ -91,13 +91,13 @@ CI_hill<-function(data){
     return(goodness_out)
   }
   
-  Parameters<-opt_par$optim$bestmem#DEoptim algorithm
-  #Parameters<-opt_par$par#genoud/ABC algorithm
-  names(Parameters)<-c("Vmax", "Kmf", "Kic", "n")
+  #Parameters<-opt_par$optim$bestmem#DEoptim algorithm
+  Parameters<-opt_par$par#genoud/ABC algorithm
+  names(Parameters)<-c("Vmax", "Kmf", "Kic", "Ki")
   
   out_all<-list(Parameters = Parameters,
-                Goodness = goodness(as.numeric(opt_par$optim$bestmem)),#DEoptim algorithm
-                #Goodness = goodness(as.numeric(opt_par$par)),#genoud/ABC algorithm
+                #Goodness = goodness(as.numeric(opt_par$optim$bestmem)),#DEoptim algorithm
+                Goodness = goodness(as.numeric(opt_par$par)),#genoud/ABC algorithm
                 MCMC = par_mcmc)
   
   return(out_all)
