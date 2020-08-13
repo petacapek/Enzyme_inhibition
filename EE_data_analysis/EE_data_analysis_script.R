@@ -1,6 +1,6 @@
 ###############################################################################################################################################
 ###############################################################################################################################################
-######################################Inhibition of soil extracelular enzyme activity - monophosphoesterases###################################
+################################################Biochemical inhibition of soil phosphatase activity############################################
 ###############################################################################################################################################
 ###############################################################################################################################################
 
@@ -487,9 +487,9 @@ ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = 
   geom_line(data=epredts, aes(InhibitorSRP, vrel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2, show.legend = F) +
   scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
   scale_linetype_manual(values=c(rep("solid", 4), "longdash")) +
-  ylab("Relative effect of inhibitor  (%)") +
+  ylab("Relative potential phosphatase activity  (%)") +
   xlab(expression(paste("Initial SRP (", mu, "mol ", g^{-1}, ")"))) +
-  labs(fill=expression(paste("Substrate (", mu, "mol ", g^{-1}, ")"))) +
+  labs(fill=expression(paste("MUB-P (", mu, "mol ", g^{-1}, ")"))) +
   theme(legend.position = c(0.35,0.3))
 
 #Piecewise linear regression
@@ -565,7 +565,7 @@ ggplot(Erts, aes(Catchment2, v)) + geom_bar(aes(fill=Interval), stat = "identity
   geom_errorbar(aes(ymin=v, ymax=v+v.se, color=Interval), position=position_dodge(), show.legend = F) +
   scale_color_manual(values = c("black", "black")) +
   theme(axis.title.x = element_blank(), legend.title = element_blank(), legend.position = c(0.12, 0.9)) +
-  ylab(expression(paste("Potential enzyme activity (", mu, "mol ", g^{-1}, min^{-1}, ")"))) +
+  ylab(expression(paste("Potential phosphatase activity (", mu, "mol ", g^{-1}, min^{-1}, ")"))) +
   geom_text(aes(Catchment2, bpx, label=bp, hjust=1.1, vjust=8, fontface="italic"), cex=8)
   
 
@@ -867,7 +867,7 @@ grid.arrange(ggplot(subset(viz_inh, DOP==0.1 | DOP==10), aes(SRP, activity)) +
                scale_linetype_manual(values = c("solid", "dotdash")) +
                scale_color_manual(values = c("black", "grey60")) +
                labs(color=expression(paste("DOP (", mu, "mol ", g^{-1}, ")")), linetype=c(" ")) +
-               ggtitle("A)") + ylab(expression(atop("Potential enzyme activity", paste("(% of the actual activity)")))) +
+               ggtitle("A)") + ylab(expression(atop("Potential phosphatase activity", paste("(% of the actual activity)")))) +
                xlab(expression(paste("SRP (", mu, "mol ", g^{-1}, ")"))) +
                theme(legend.direction = c("horizontal"), legend.box = c("vertical"), legend.position = c(0.25, 0.3),
                      panel.spacing = unit(2, "lines")),
@@ -877,7 +877,7 @@ grid.arrange(ggplot(subset(viz_inh, DOP==0.1 | DOP==10), aes(SRP, activity)) +
                scale_linetype_manual(values = c("solid", "dotdash")) +
                scale_color_manual(values = c("black", "grey60")) +
                labs(color=expression(paste("SRP (", mu, "mol ", g^{-1}, ")")), linetype=c(" ")) +
-               ggtitle("B)") + ylab(expression(atop("Potential enzyme activity", paste("(% of the actual activity)")))) +
+               ggtitle("B)") + ylab(expression(atop("Potential phosphatase activity", paste("(% of the actual activity)")))) +
                xlab(expression(paste("DOP (", mu, "mol ", g^{-1}, ")"))) +
                theme(legend.direction = c("horizontal"), legend.box = c("vertical"), legend.position = c(0.25, 0.3),
                      panel.spacing = unit(2, "lines")),
