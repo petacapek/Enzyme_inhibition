@@ -415,6 +415,9 @@ for(i in 1:nrow(erates)){
 erates$Substrate2<-round(erates$Substrate, 0)
 erates$Substrate3<-rep(erates$Substrate2[1:25], times=4)
 
+erates$InhibitorSRP2<-round(erates$InhibitorSRP, 0)
+erates$InhibitorSRP3<-rep(erates$InhibitorSRP2[1:25], times=4)
+
 ###Predictions of the product inhibition function
 epredts<-data.frame(Substrate=c(rep(unique(edata[(edata$Catchment=="Plesne" & edata$Horizon=="Litter"), "Substrate"]), each=50),
                                rep(unique(edata[(edata$Catchment=="Plesne" & edata$Horizon=="Organic topsoil"), "Substrate"]), each=50),
@@ -477,6 +480,9 @@ for(i in 1:nrow(epredts)){
 epredts$Substrate2<-round(epredts$Substrate, 0)
 epredts$Substrate3<-rep(epredts$Substrate2[1:250], times=4)
 
+epredts$InhibitorSRP2<-round(epredts$InhibitorSRP, 0)
+epredts$InhibitorSRP3<-rep(epredts$InhibitorSRP2[1:250], times=4)
+
 erates$Legend<-factor(erates$Legend, levels=c("Plešné - Litter", "Plešné - Organic topsoil", "Čertovo - Litter", "Čertovo - Organic topsoil"))
 epredts$Legend<-factor(epredts$Legend, levels=c("Plešné - Litter", "Plešné - Organic topsoil", "Čertovo - Litter", "Čertovo - Organic topsoil"))
 
@@ -491,6 +497,15 @@ ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = 
   xlab(expression(paste("Initial SRP (", mu, "mol ", g^{-1}, ")"))) +
   labs(fill=expression(paste("MUB-P (", mu, "mol ", g^{-1}, ")"))) +
   theme(legend.position = c(0.35,0.3))
+
+ggplot(erates, aes(Substrate, v5)) + geom_point(cex=6, pch=21, aes(fill = as.factor(InhibitorSRP3))) +
+  facet_wrap(~Legend, scales="free") + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
+  #scale_y_continuous(limits = c(0, 110), breaks = c(0, 20, 40, 60, 80, 100)) +
+  geom_errorbar(aes(ymin=v5-v5.se, ymax=v5+v5.se), width=0.01) +
+  ylab(expression(paste("Potential phosphatase activity  (", mu,"mol ", g^{-1}~min^{-1},")" ))) +
+  xlab(expression(paste("Initial MUB-P (", mu, "mol ", g^{-1}, ")"))) +
+  labs(fill=expression(paste("Initial SRP (", mu, "mol ", g^{-1}, ")"))) +
+  theme(legend.position = c(0.9,0.15))
 
 #Piecewise linear regression
 ##Run for saturating concentrations of substrate and no inhibitor
