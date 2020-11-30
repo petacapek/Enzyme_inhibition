@@ -1,6 +1,6 @@
 ###############################################################################################################################################
 ###############################################################################################################################################
-################################################Biochemical inhibition of soil phosphatase activity############################################
+################################################Biochemical inhibition of soil acid phosphatase activity#######################################
 ###############################################################################################################################################
 ###############################################################################################################################################
 
@@ -850,25 +850,49 @@ viz_inh<-data.frame(SRP=rep(rep(seq(0.1, 10, by=0.1), 100), 4),
                               rep("Litter", 1e4), rep("Organic topsoil", 1e4)))
 viz_inh$activity<-NA
 
+###The best model
+CI_Porg_model<-function(time, state, pars){
+  with(as.list(c(state, pars)),{
+    #equations
+    Ef=Vmax*S/(Kmf*(1+SRP/Kic)*(1 + Porg/Kmorg) + S)#fluorescent product
+    Es=Vmax*Porg/(Kmorg*(1+SRP/Kic)*(1 + S/Kmf) + Porg)
+    #Fluorescent product/substrate
+    dPf<-Ef
+    dS<--Ef
+    #SRP/Porg
+    dSRP<-Ef + Es
+    dPorg<--Es
+    return(list(c(dPf, dS, dSRP, dPorg)))
+  })
+}
+
 for(i in 1:nrow(viz_inh)){
   if(viz_inh$Legend[i]=="Plešné - Litter"){
-    viz_inh$activity[i]<-(100*plo_cip$Parameters[1]/(plo_cip$Parameters[2]*
-                                     (1+viz_inh$SRP[i]/plo_cip$Parameters[3])*
-                                     (1+viz_inh$DOP[i]/plo_cip$Parameters[4]) + 100))/(100*plo_cip$Parameters[1]/(plo_cip$Parameters[2]+ 100))*100
+    outx<-as.data.frame(ode(y=c(Pf=0, S=300, SRP=viz_inh$SRP[i],
+                               Porg=viz_inh$DOP[i]), parms = plo_cip$Parameters, 
+                           CI_Porg_model, times=seq(0,1, by=0.1)))
+    
+    viz_inh$activity[i]<-coef(lm(Pf~time-1, outx))[1]/plo_cip$Parameters[1]*100
   }else{
     if(viz_inh$Legend[i]=="Plešné - Organic topsoil"){
-      viz_inh$activity[i]<-(100*pla_cip$Parameters[1]/(pla_cip$Parameters[2]*
-                                       (1+viz_inh$SRP[i]/pla_cip$Parameters[3])*
-                                       (1+viz_inh$DOP[i]/pla_cip$Parameters[4]) + 100))/(100*pla_cip$Parameters[1]/(pla_cip$Parameters[2]+ 100))*100
+      outx<-as.data.frame(ode(y=c(Pf=0, S=300, SRP=viz_inh$SRP[i],
+                                  Porg=viz_inh$DOP[i]), parms = pla_cip$Parameters, 
+                              CI_Porg_model, times=seq(0,1, by=0.1)))
+      
+      viz_inh$activity[i]<-coef(lm(Pf~time-1, outx))[1]/pla_cip$Parameters[1]*100
     }else{
       if(viz_inh$Legend[i]=="Čertovo - Litter"){
-        viz_inh$activity[i]<-(100*co_cip$Parameters[1]/(co_cip$Parameters[2]*
-                                         (1+viz_inh$SRP[i]/co_cip$Parameters[3])*
-                                         (1+viz_inh$DOP[i]/co_cip$Parameters[4]) + 100))/(100*co_cip$Parameters[1]/(co_cip$Parameters[2]+ 100))*100
+        outx<-as.data.frame(ode(y=c(Pf=0, S=300, SRP=viz_inh$SRP[i],
+                                    Porg=viz_inh$DOP[i]), parms = co_cip$Parameters, 
+                                CI_Porg_model, times=seq(0,1, by=0.1)))
+        
+        viz_inh$activity[i]<-coef(lm(Pf~time-1, outx))[1]/co_cip$Parameters[1]*100
       }else{
-        viz_inh$activity[i]<-(100*ca_cip$Parameters[1]/(ca_cip$Parameters[2]*
-                                         (1+viz_inh$SRP[i]/ca_cip$Parameters[3])*
-                                         (1+viz_inh$DOP[i]/ca_cip$Parameters[4]) + 100))/(100*ca_cip$Parameters[1]/(ca_cip$Parameters[2]+ 100))*100
+        outx<-as.data.frame(ode(y=c(Pf=0, S=300, SRP=viz_inh$SRP[i],
+                                    Porg=viz_inh$DOP[i]), parms = ca_cip$Parameters, 
+                                CI_Porg_model, times=seq(0,1, by=0.1)))
+        
+        viz_inh$activity[i]<-coef(lm(Pf~time-1, outx))[1]/ca_cip$Parameters[1]*100
       }
     }
   }
@@ -898,7 +922,327 @@ grid.arrange(ggplot(subset(viz_inh, DOP==0.1 | DOP==10), aes(SRP, activity)) +
                      panel.spacing = unit(2, "lines")),
              nrow=2)
 
+#############################################################################################################################################
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Response to reviewer #1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#############################################################################################################################################
+#Visualize the degree of error associated with competitive inhibition and incorrect use of linear regression 
+##time
+t_mm<-c(seq(0, 1, by = 0.1), seq(1, 4))
+##Vmax, Km and two different values of inhibition constant 
+Vmax_mm=5
+Km_mm=25
+Ki_mma=5
+Ki_mmb=1
+##Substrate concentration
+s_mm<-seq(0,500)
 
+##Create the simulation
+###0 amount of P-PO4
+P0=data.frame(Substrate=s_mm, v=s_mm*Vmax_mm/(s_mm+Km_mm), PO4=0)
+###10 umols of P-PO4
+P10a=data.frame(Substrate=s_mm, v=s_mm*Vmax_mm/(s_mm+Km_mm*(1+10/Ki_mma)), PO4=10)
+P10b=data.frame(Substrate=s_mm, v=s_mm*Vmax_mm/(s_mm+Km_mm*(1+10/Ki_mmb)), PO4=10)
+###20 umols of P-PO4
+P20a=data.frame(Substrate=s_mm, v=s_mm*Vmax_mm/(s_mm+Km_mm*(1+20/Ki_mma)), PO4=20)
+P20b=data.frame(Substrate=s_mm, v=s_mm*Vmax_mm/(s_mm+Km_mm*(1+20/Ki_mmb)), PO4=20)
+
+##Plot
+grid.arrange(ggplot(data=rbind(P0, P10a, P20a), aes(Substrate, v)) + geom_line(aes(color=as.factor(PO4)), lwd=1.2) + 
+               theme_min + geom_hline(yintercept=5) + ggtitle("A)") + 
+               scale_color_manual(values = c("grey70", "grey30", "black")) +
+               ylab(expression(paste("Potential phosphatase activity (", mu, "mol ", g^{-1}~h^{-1}, ")"))) +
+               xlab(expression(paste("MUB-P (", mu, "mol ", g^{-1}, ")"))) +
+               labs(color=expression(paste("P-P",O[4], " (", mu, "mol ", g^{-1}, ")"))) +
+               theme(legend.position = c(0.8, 0.3)),
+             ggplot(data=rbind(P0, P10b, P20b), aes(Substrate, v)) + geom_line(aes(color=as.factor(PO4)), lwd=1.2, show.legend = F) + 
+               theme_min + geom_hline(yintercept=5) + ggtitle("B)") + 
+               scale_color_manual(values = c("grey70", "grey30", "black")) +
+               ylab(expression(paste("Potential phosphatase activity (", mu, "mol ", g^{-1}~h^{-1}, ")"))) +
+               xlab(expression(paste("MUB-P (", mu, "mol ", g^{-1}, ")"))), ncol=2
+             )
+
+##Progress curves simulation
+###Without inhibition
+WIs<-function(time, state, pars){
+  with(as.list(c(state, pars)),{
+    dP<-Vmax*S/(Km+S)
+    dS<--Vmax*S/(Km+S)
+    return(list(c(dP, dS)))
+  })
+}
+###Store data here
+WIs_out<-data.frame(Substrate=numeric(), Product=numeric(), time=numeric(), Legend=character(), PO4=numeric(), Ki=numeric())
+###Do the simulation 
+for(i in c(0, 10, 20)){
+  out_i<-as.data.frame(ode(y=c(P=0, S=500), parms=c(Vmax=Vmax_mm, Km=Km_mm), times = t_mm, WIs))
+  WIs_out<-rbind(WIs_out, data.frame(Substrate=500, Product=out_i$P, time=out_i$time, Legend="WI", PO4=i, Ki=1))
+  out_i<-as.data.frame(ode(y=c(P=0, S=500), parms=c(Vmax=Vmax_mm, Km=Km_mm), times = t_mm, WIs))
+  WIs_out<-rbind(WIs_out, data.frame(Substrate=500, Product=out_i$P, time=out_i$time, Legend="WI", PO4=i, Ki=5))
+}
+
+###With inhibition
+CIs<-function(time, state, pars){
+  with(as.list(c(state, pars)),{
+    dP<-Vmax*S/(Km*(1+PO4/Kic)+S)
+    dS<--Vmax*S/(Km*(1+PO4/Kic)+S)
+    dPO4<-Vmax*S/(Km*(1+PO4/Kic)+S)
+    return(list(c(dP, dS, dPO4)))
+  })
+}
+###Store data here
+CIs_out<-data.frame(Substrate=numeric(), Product=numeric(), time=numeric(), Legend=character(), PO4=numeric(), Ki=numeric())
+###Do the simulation 
+for(i in c(0, 10, 20)){
+  for(n in c(1, 5)){
+    out_i<-as.data.frame(ode(y=c(P=0, S=500, PO4=i), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=n), times = t_mm, CIs))
+    CIs_out<-rbind(CIs_out, data.frame(Substrate=500, Product=out_i$P, time=out_i$time, Legend="CI", PO4=i, Ki=n))
+  }
+}
+
+grid.arrange(ggplot(subset(CIs_out, Ki==5), aes(time, Product)) + geom_point(cex=6, aes(colour=as.factor(PO4))) + 
+               theme_min + geom_line(data=WIs_out, aes(time, Product)) + 
+               stat_smooth(method=lm, aes(color=as.factor(PO4)), se=F, formula = y~x-1) + ggtitle("A)") + 
+               scale_color_manual(values = c("grey70", "grey30", "black")) +
+               ylab(expression(paste("MUB (", mu, "mol ", g^{-1}, ")"))) +
+               xlab("Time (hours)") +
+               labs(color=expression(paste("P-P",O[4], " (", mu, "mol ", g^{-1}, ")"))) +
+               theme(legend.position = c(0.8, 0.3)),
+             ggplot(subset(CIs_out, Ki==1), aes(time, Product)) + geom_point(cex=6, aes(colour=as.factor(PO4)), show.legend = F) + 
+               theme_min + geom_line(data=WIs_out, aes(time, Product)) + 
+               stat_smooth(method=lm, aes(color=as.factor(PO4)), se=F, show.legend = F, formula = y~x-1) + ggtitle("B)") + 
+               scale_color_manual(values = c("grey70", "grey30", "black")) +
+               ylab(expression(paste("MUB (", mu, "mol ", g^{-1}, ")"))) +
+               xlab("Time (hours)") +
+               labs(color=expression(paste("P-P",O[4], " (", mu, "mol ", g^{-1}, ")"))) +
+               theme(legend.position = c(0.8, 0.3)), ncol=2
+  
+)
+
+
+###Estimate slope of linear regression
+Simul_out<-rbind(WIs_out, CIs_out)
+sim_rates<-Simul_out %>% group_by(Substrate,PO4, Legend, Ki) %>% summarize(v=NA, v.se=NA)
+sim_rates$v<-as.numeric(sim_rates$v)
+sim_rates$v.se<-as.numeric(sim_rates$v.se)
+for(i in c(0, 10, 20)){
+  for(n in unique(sim_rates$Legend)){
+    for(k in unique(sim_rates$Ki)){
+      lmv<-lm(Product~time-1, Simul_out[(Simul_out$PO4==i & Simul_out$Legend==n & Simul_out$Ki==k), ])
+      sim_rates[(sim_rates$PO4==i & sim_rates$Legend==n & sim_rates$Ki==k), "v"]<-summary(lmv)$coefficients[1]
+      sim_rates[(sim_rates$PO4==i & sim_rates$Legend==n & sim_rates$Ki==k), "v.se"]<-summary(lmv)$coefficients[2]
+    }
+  }
+}
+
+grid.arrange(ggplot(data=rbind(P0, P10a, P20a), aes(Substrate, v)) + geom_line(aes(color=as.factor(PO4)), lwd=1.2) + 
+               theme_min + geom_hline(yintercept=5) + ggtitle("A)") + 
+               scale_color_manual(values = c("grey70", "grey30", "black")) +
+               ylab(expression(paste("Potential phosphatase activity (", mu, "mol ", g^{-1}~h^{-1}, ")"))) +
+               xlab(expression(paste("MUB-P (", mu, "mol ", g^{-1}, ")"))) +
+               labs(color=expression(paste("P-P",O[4], " (", mu, "mol ", g^{-1}, ")")),
+                    shape="Inhibition type") +
+               theme(legend.position = c(0.6, 0.25), legend.direction = "horizontal") +
+               geom_point(data=subset(sim_rates, Ki==5), aes(Substrate, v, color=as.factor(PO4), shape=Legend), cex=6, show.legend = T),
+             
+             ggplot(data=rbind(P0, P10b, P20b), aes(Substrate, v)) + geom_line(aes(color=as.factor(PO4)), lwd=1.2, show.legend = F) + 
+               theme_min + geom_hline(yintercept=5) + ggtitle("B)") + 
+               scale_color_manual(values = c("grey70", "grey30", "black")) +
+               ylab(expression(paste("Potential phosphatase activity (", mu, "mol ", g^{-1}~h^{-1}, ")"))) +
+               xlab(expression(paste("MUB-P (", mu, "mol ", g^{-1}, ")"))) +
+               labs(color=expression(paste("P-P",O[4], " (", mu, "mol ", g^{-1}, ")")),
+                    shape="Inhibition type") +
+               theme(legend.position = c(0.6, 0.25), legend.direction = "horizontal") +
+               geom_point(data=subset(sim_rates, Ki==1), aes(Substrate, v, color=as.factor(PO4), shape=Legend), cex=6, show.legend = F), ncol=2)
+
+##Calculate the degree of error along the gradient of Ki/Km 
+KiKm<-seq(0.1, 100, by = 0.1)
+v_error<-numeric()
+
+for(i in KiKm){
+  out_i<-as.data.frame(ode(y=c(P=0, S=500, PO4=0), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=Km_mm/i), 
+                           times = seq(0, 1, by=0.1), CIs))
+  v_error<-append(v_error, (4.76-summary(lm(P~time-1, out_i))$coefficients[1])/4.76*100)
+  
+}
+
+##Calculate the necessary amount of MUB-P along the gradient of Ki/Km for 1 hour incubation time
+KiKm<-c(0.1, 1, 10, 25, 50, 75, 100)
+s_need_in<-c(500, 1000, 5000, 10000, 1e5)
+s_need_out<-numeric()
+
+#KiKm = 0.1
+v_app<-numeric()
+for(i in s_need_in){
+  out_i<-as.data.frame(ode(y=c(P=0, S=i, PO4=0), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=Km_mm/0.1), 
+                           times = seq(0, 1, by=0.1), CIs))
+  v_app<-append(v_app, summary(lm(P~time-1, out_i))$coefficients[1])
+}
+
+plot(v_app~s_need_in)
+nlsc<-coef(nls(v_app~a*s_need_in/(b+s_need_in)+c, start = list(a=5, b=1000, c=-0.1)))
+curve(nlsc[1]*x/(nlsc[2]+x)+nlsc[3], add=T)
+
+s_need_out<-append(s_need_out, nlsc[2]*(4.76-nlsc[3])/(nlsc[1]-4.76+nlsc[3]))
+
+#KiKm = 1
+v_app<-numeric()
+for(i in s_need_in){
+  out_i<-as.data.frame(ode(y=c(P=0, S=i, PO4=0), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=Km_mm/1), 
+                           times = seq(0, 1, by=0.1), CIs))
+  v_app<-append(v_app, summary(lm(P~time-1, out_i))$coefficients[1])
+}
+
+plot(v_app~s_need_in)
+nlsc<-coef(nlsLM(v_app~a*s_need_in/(b+s_need_in)+c, start = list(a=5, b=1000, c=0)))
+curve(nlsc[1]*x/(nlsc[2]+x)+nlsc[3], add=T)
+
+s_need_out<-append(s_need_out, nlsc[2]*(4.76-nlsc[3])/(nlsc[1]-4.76+nlsc[3]))
+
+#KiKm = 10
+v_app<-numeric()
+for(i in s_need_in){
+  out_i<-as.data.frame(ode(y=c(P=0, S=i, PO4=0), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=Km_mm/10), 
+                           times = seq(0, 1, by=0.1), CIs))
+  v_app<-append(v_app, summary(lm(P~time-1, out_i))$coefficients[1])
+}
+
+plot(v_app~s_need_in)
+nlsc<-coef(nls(v_app~a*s_need_in/(b+s_need_in)+c, start = list(a=5, b=1000, c=0)))
+curve(nlsc[1]*x/(nlsc[2]+x)+nlsc[3], add=T)
+
+s_need_out<-append(s_need_out, nlsc[2]*(4.76-nlsc[3])/(nlsc[1]-4.76+nlsc[3]))
+
+#KiKm = 25
+v_app<-numeric()
+for(i in s_need_in){
+  out_i<-as.data.frame(ode(y=c(P=0, S=i, PO4=0), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=Km_mm/25), 
+                           times = seq(0, 1, by=0.1), CIs))
+  v_app<-append(v_app, summary(lm(P~time-1, out_i))$coefficients[1])
+}
+
+plot(v_app~s_need_in)
+nlsc<-coef(nls(v_app~a*s_need_in/(b+s_need_in)+c, start = list(a=5, b=1000, c=0)))
+curve(nlsc[1]*x/(nlsc[2]+x)+nlsc[3], add=T)
+
+s_need_out<-append(s_need_out, nlsc[2]*(4.76-nlsc[3])/(nlsc[1]-4.76+nlsc[3]))
+
+#KiKm = 50
+v_app<-numeric()
+for(i in s_need_in){
+  out_i<-as.data.frame(ode(y=c(P=0, S=i, PO4=0), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=Km_mm/50), 
+                           times = seq(0, 1, by=0.1), CIs))
+  v_app<-append(v_app, summary(lm(P~time-1, out_i))$coefficients[1])
+}
+
+plot(v_app~s_need_in)
+nlsc<-coef(nls(v_app~a*s_need_in/(b+s_need_in)+c, start = list(a=5, b=1000, c=0)))
+curve(nlsc[1]*x/(nlsc[2]+x)+nlsc[3], add=T)
+
+s_need_out<-append(s_need_out, nlsc[2]*(4.76-nlsc[3])/(nlsc[1]-4.76+nlsc[3]))
+
+#KiKm = 75
+v_app<-numeric()
+for(i in s_need_in){
+  out_i<-as.data.frame(ode(y=c(P=0, S=i, PO4=0), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=Km_mm/75), 
+                           times = seq(0, 1, by=0.1), CIs))
+  v_app<-append(v_app, summary(lm(P~time-1, out_i))$coefficients[1])
+}
+
+plot(v_app~s_need_in)
+nlsc<-coef(nls(v_app~a*s_need_in/(b+s_need_in)+c, start = list(a=5, b=1000, c=0)))
+curve(nlsc[1]*x/(nlsc[2]+x)+nlsc[3], add=T)
+
+s_need_out<-append(s_need_out, nlsc[2]*(4.76-nlsc[3])/(nlsc[1]-4.76+nlsc[3]))
+
+#KiKm = 100
+v_app<-numeric()
+for(i in s_need_in){
+  out_i<-as.data.frame(ode(y=c(P=0, S=i, PO4=0), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=Km_mm/100), 
+                           times = seq(0, 1, by=0.1), CIs))
+  v_app<-append(v_app, summary(lm(P~time-1, out_i))$coefficients[1])
+}
+
+plot(v_app~s_need_in)
+nlsc<-coef(nls(v_app~a*s_need_in/(b+s_need_in)+c, start = list(a=5, b=1000, c=0)))
+curve(nlsc[1]*x/(nlsc[2]+x)+nlsc[3], add=T)
+
+s_need_out<-append(s_need_out, nlsc[2]*(4.76-nlsc[3])/(nlsc[1]-4.76+nlsc[3]))
+
+grid.arrange(
+  ggplot(data.frame(x=seq(0.1, 100, by = 0.1), y=v_error), aes(x, y)) + geom_line(lwd=1.2) + theme_min +
+    xlab(expression(paste(K[M],"/Kic"))) + ylab("Relative error (%)") + ggtitle("A)"),
+  ggplot(data.frame(x=KiKm, y=s_need_out/1000), aes(x, y)) + geom_line(lwd=1.2) + theme_min +
+    xlab(expression(paste(K[M],"/Kic"))) + ylab(expression(paste("Saturating MUB-P (mmol ", g^{-1}, ")")))+
+    ylim(0, 4.2)+ggtitle("B)"), ncol=2
+)
+
+
+
+##Calculate the necessary time of MUB-P incubation for Ki/Km=1/50 and MUB-P= 1 mmol/l
+#KiKm = 50
+t_need_in2<-(t_need_in-t_need_in[1])[-1]
+v_app<-numeric()
+out_i<-as.data.frame(ode(y=c(P=0, S=1000, PO4=0), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=Km_mm/50), 
+                         times = t_need_in, CIs))
+for(i in 2:length(t_need_in)){
+  v_app<-append(v_app, summary(lm(P~time-1, out_i[c(1:i), ]))$coefficients[1])
+}
+
+plot(v_app~t_need_in2, xlim=c(0.18,1))
+v_app<-v_app[t_need_in2>0.18]
+t_need_in2<-t_need_in2[t_need_in2>0.18]
+lmc<-coef(lm(v_app~t_need_in2))
+(4.76-lmc[1])/lmc[2]*60
+
+#Theoretical Fig. 1
+lb1<-expression(paste(italic(frac(V[MAX]~Substrate, K[M]~+~Substrate))))
+lb2<-expression(paste(italic(frac(V[MAX]~Substrate, K[M]~(1~+~frac(Inhibitor,Kic))~+~Substrate))))
+lb3<-expression(paste(italic(Inhibitor)==10~mu,"mol"~g^{-1}~";"~italic(Kic)==1~mu,"mol"~g^{-1}))
+
+##Progress curves simulation
+S1<-as.data.frame(ode(y=c(P=0, S=500), parms=c(Vmax=Vmax_mm, Km=Km_mm), times = c(0, 0.5, 1, 2, 3, 4), WIs))
+S1$PO4<-S1$P+10
+S1$Legend<-c("WI")
+
+S2<-as.data.frame(ode(y=c(P=0, S=500, PO4=10), parms=c(Vmax=Vmax_mm, Km=Km_mm, Kic=1), times = c(0, 0.5, 1, 2, 3, 4), CIs))
+S2$Legend<-c("CI")
+
+S3<-rbind(S1, S2)
+
+##Calculated slopes
+p3<-data.frame(Type=c("A", "B"), slope=c(coef(lm(P~time-1, S3[S3$Legend=="WI",]))[1],
+                                         coef(lm(P~time-1, S3[S3$Legend=="CI",]))[1]))
+group_name = c(expression(paste(italic(frac(V[MAX]~Substrate, K[M]~+~Substrate)))),
+               expression(paste(italic(frac(V[MAX]~Substrate, K[M]~(1~+~frac(Inhibitor,Kic))~+~Substrate)))))
+
+grid.arrange(ggplot(data=rbind(P0, P10b), aes(Substrate, v)) + geom_line(aes(color=as.factor(PO4)), lwd=1.2, show.legend = F) + 
+               theme_min + geom_hline(yintercept=5) + ggtitle("A)") + 
+               scale_color_manual(values = c("grey70", "black")) +
+               ylab(expression(paste("Potential enzyme activity (", mu, "mol ", g^{-1}~h^{-1}, ")"))) +
+               xlab(expression(paste("Substrate (", mu, "mol ", g^{-1}, ")"))) + 
+               annotate("text", x=400, y=4.2, label=lb1, parse=TRUE, color="grey70", cex=6)+ 
+               annotate("text", x=350, y=1.9, label=lb2, parse=TRUE, cex=6)+ 
+               annotate("text", x=280, y=0.1, label=lb3, parse=TRUE, cex=6),
+             ggplot(S3, aes(x=time))+
+               geom_point(cex=6, aes(y=P, colour=Legend, shape="Fluorescent product"), show.legend = F) +
+               stat_smooth(method=lm, formula = y~x-1, aes(y=P, color=Legend), show.legend = F, se=F)+
+               geom_point(cex=6, aes(y=PO4, colour=Legend, shape="Inhibiting product"), show.legend = F, se=F)+
+               scale_y_continuous(sec.axis = sec_axis(~.,
+                                                      name = expression(paste("Inhibiting product (", mu ,"mol ",g^{-1}, ")"))), 
+                                  limits = c(0, 30), expand = c(0.01, 0.01))+
+               scale_x_continuous(expand = c(0.01, 0.01))+
+               scale_colour_manual(values = c("black", "grey60"))+
+               labs(y = expression(paste("Fluorescent product (", mu ,"mol " ,g^{-1}, ")")),
+                    x = "Time (h)")+
+               scale_shape_manual(values = c(19, 15))+ ggtitle("B)")+
+               theme_min,
+             ggplot(p3, aes(x=Type, y=slope)) + geom_col(aes(fill=Type), show.legend = F) + theme_min +
+               scale_y_continuous(limits=c(0, 5), expand=c(0,0)) + 
+               geom_hline(yintercept=5) + ggtitle("C)") + scale_fill_manual(values = c("grey60", "black")) +
+               ylab(expression(paste("Potential enzyme activity (", mu, "mol ", g^{-1}~h^{-1}, ")"))) + 
+               theme(axis.title.x = element_blank(),
+                     axis.text.x=element_text(vjust=0.2, size=14, colour="black")) +
+               scale_x_discrete(labels=group_name), nrow=1)
 #############################################################################################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Parameter values predictors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #############################################################################################################################################
