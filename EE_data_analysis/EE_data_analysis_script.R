@@ -20,6 +20,7 @@ library(ABCoptim)
 library(gridExtra)
 library(reshape)
 library(segmented)
+library(soilphysics)
 #############################################################GGPLOT THEME######################################################################
 theme_min<-theme(axis.text.x=element_text(vjust=0.2, size=18, colour="black"),
                  axis.text.y=element_text(hjust=0.2, size=18, colour="black"),
@@ -186,13 +187,13 @@ pdata$Catchment<-factor(pdata$Catchment, levels=c("Plesne", "Certovo"))
 pdata$Legend<-NA
 for(i in 1:nrow(pdata)){
   if(pdata$Catchment[i]=="Plesne" & pdata$Horizon[i]=="Litter"){
-    pdata$Legend[i]<-"Plešné - Litter"
+    pdata$Legend[i]<-"Plešné - Forest floor"
   }else{
     if(pdata$Catchment[i]=="Plesne" & pdata$Horizon[i]=="Organic topsoil"){
       pdata$Legend[i]<-"Plešné - Organic topsoil"
     }else{
       if(pdata$Catchment[i]=="Certovo" & pdata$Horizon[i]=="Litter"){
-        pdata$Legend[i]<-"Čertovo - Litter"
+        pdata$Legend[i]<-"Čertovo - Forest floor"
       }else{
         pdata$Legend[i]<-"Čertovo - Organic topsoil"
       }
@@ -201,7 +202,7 @@ for(i in 1:nrow(pdata)){
 }
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Initial product (P-PO4 measured as SRP) concentration~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-pdata$Legend<-factor(pdata$Legend, levels=c("Plešné - Litter", "Plešné - Organic topsoil", "Čertovo - Litter", "Čertovo - Organic topsoil"))
+pdata$Legend<-factor(pdata$Legend, levels=c("Plešné - Forest floor", "Plešné - Organic topsoil", "Čertovo - Forest floor", "Čertovo - Organic topsoil"))
 #Measured vs added SRP
 ggplot(pdata[pdata$Time==0, ], aes(SRP_a, SRP_o)) + geom_point(cex=6, aes(fill=Legend, shape=Legend)) +
   theme_min + scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
@@ -209,7 +210,7 @@ ggplot(pdata[pdata$Time==0, ], aes(SRP_a, SRP_o)) + geom_point(cex=6, aes(fill=L
   theme(legend.title = element_blank(), legend.position = c(0.2, 0.8)) +
   ylim(0, 20) + xlim(0, 20) + geom_abline(intercept = 0, slope=1, color="black") +
   stat_smooth(method="lm", lty=2, lwd=1.5, se=F, colour="black") +
-  ylab(expression(paste("Measured SRP (", mu, "mol ", g^{-1}, ")"))) + 
+  ylab(expression(paste("Measured inorganic P (", mu, "mol ", g^{-1}, ")"))) + 
   xlab(expression(paste("Added P-P", O[4]," (", mu, "mol ", g^{-1}, ")")))
 
 #Define 4 different relationships between the added and measured initial SRP concentrations
@@ -398,13 +399,13 @@ for(l in unique(edata$Horizon)){
 erates$Legend<-NA
 for(i in 1:nrow(erates)){
   if(erates$Catchment[i]=="Plesne" & erates$Horizon[i]=="Litter"){
-    erates$Legend[i]<-"Plešné - Litter"
+    erates$Legend[i]<-"Plešné - Forest floor"
   }else{
     if(erates$Catchment[i]=="Plesne" & erates$Horizon[i]=="Organic topsoil"){
       erates$Legend[i]<-"Plešné - Organic topsoil"
     }else{
       if(erates$Catchment[i]=="Certovo" & erates$Horizon[i]=="Litter"){
-        erates$Legend[i]<-"Čertovo - Litter"
+        erates$Legend[i]<-"Čertovo - Forest floor"
       }else{
         erates$Legend[i]<-"Čertovo - Organic topsoil"
       }
@@ -463,13 +464,13 @@ for(l in unique(epredts$Horizon)){
 epredts$Legend<-NA
 for(i in 1:nrow(epredts)){
   if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Litter"){
-    epredts$Legend[i]<-"Plešné - Litter"
+    epredts$Legend[i]<-"Plešné - Forest floor"
   }else{
     if(epredts$Catchment[i]=="Plesne" & epredts$Horizon[i]=="Organic topsoil"){
       epredts$Legend[i]<-"Plešné - Organic topsoil"
     }else{
       if(epredts$Catchment[i]=="Certovo" & epredts$Horizon[i]=="Litter"){
-        epredts$Legend[i]<-"Čertovo - Litter"
+        epredts$Legend[i]<-"Čertovo - Forest floor"
       }else{
         epredts$Legend[i]<-"Čertovo - Organic topsoil"
       }
@@ -483,8 +484,8 @@ epredts$Substrate3<-rep(epredts$Substrate2[1:250], times=4)
 epredts$InhibitorSRP2<-round(epredts$InhibitorSRP, 0)
 epredts$InhibitorSRP3<-rep(epredts$InhibitorSRP2[1:250], times=4)
 
-erates$Legend<-factor(erates$Legend, levels=c("Plešné - Litter", "Plešné - Organic topsoil", "Čertovo - Litter", "Čertovo - Organic topsoil"))
-epredts$Legend<-factor(epredts$Legend, levels=c("Plešné - Litter", "Plešné - Organic topsoil", "Čertovo - Litter", "Čertovo - Organic topsoil"))
+erates$Legend<-factor(erates$Legend, levels=c("Plešné - Forest floor", "Plešné - Organic topsoil", "Čertovo - Forest floor", "Čertovo - Organic topsoil"))
+epredts$Legend<-factor(epredts$Legend, levels=c("Plešné - Forest floor", "Plešné - Organic topsoil", "Čertovo - Forest floor", "Čertovo - Organic topsoil"))
 
 ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = as.factor(Substrate3))) +
   facet_grid(.~Legend) + theme_min + scale_fill_manual(values=c("black", "grey30", "grey60", "grey90", "white")) +
@@ -493,8 +494,8 @@ ggplot(erates, aes(InhibitorSRP, v5rel)) + geom_point(cex=6, pch=21, aes(fill = 
   geom_line(data=epredts, aes(InhibitorSRP, vrel, color=as.factor(Substrate3), linetype=as.factor(Substrate3)), lwd=1.2, show.legend = F) +
   scale_color_manual(values=c("black", "grey30", "grey60", "grey90", "grey90")) +
   scale_linetype_manual(values=c(rep("solid", 4), "longdash")) +
-  ylab("Relative potential phosphatase activity  (%)") +
-  xlab(expression(paste("Initial SRP (", mu, "mol ", g^{-1}, ")"))) +
+  ylab("Relative phosphatase activity  (%)") +
+  xlab(expression(paste("Initial inorganic P (", mu, "mol ", g^{-1}, ")"))) +
   labs(fill=expression(paste("MUB-P (", mu, "mol ", g^{-1}, ")"))) +
   theme(legend.position = c(0.35,0.3))
 
@@ -573,14 +574,15 @@ Erts$Catchment2<-factor(Erts$Catchment2, levels = c("Plešné", "Čertovo"))
 Erts$Interval<-factor(Erts$Interval, levels = c("To the breakpoint", "From the breakpoint"))
 Erts$bp<-c("11 min", "67 min", "23 min", "62 min", NA, NA, NA, NA)
 Erts$bpx<-c(0.1, 0.04, 0.1, 0.04, 0.1, 0.04, 0.1, 0.04)
+Erts$Horizon2<-ifelse(Erts$Horizon=="Litter", "Forest floor", "Organic topsoil")
 
 ggplot(Erts, aes(Catchment2, v)) + geom_bar(aes(fill=Interval), stat = "identity", position=position_dodge(), color="black") +
-  facet_wrap(~Horizon, scales="free_y") + theme_min + 
+  facet_wrap(~Horizon2, scales="free_y") + theme_min + 
   scale_fill_manual(values = c("white", "grey")) +
   geom_errorbar(aes(ymin=v, ymax=v+v.se, color=Interval), position=position_dodge(), show.legend = F) +
   scale_color_manual(values = c("black", "black")) +
   theme(axis.title.x = element_blank(), legend.title = element_blank(), legend.position = c(0.12, 0.9)) +
-  ylab(expression(paste("Potential phosphatase activity (", mu, "mol ", g^{-1}, min^{-1}, ")"))) +
+  ylab(expression(paste("Phosphatase activity (", mu, "mol ", g^{-1}, min^{-1}, ")"))) +
   geom_text(aes(Catchment2, bpx, label=bp, hjust=1.1, vjust=8, fontface="italic"), cex=8)
   
 
@@ -615,6 +617,7 @@ pdata_org<-subset(pdata, !is.na(Porg))
 pdata_org$SRP_a2
 pdata_org[pdata_org$SRP_a2==9, "SRP_a2"]<-8
 pdata_org[pdata_org$SRP_a2==17, "SRP_a2"]<-16
+pdata_org$Horizon2<-ifelse(pdata_org$Horizon=="Litter", "Forest floor", "Organic topsoil")
 
 grid.arrange(
   ggplot(pdata[pdata$Time==0, ], aes(SRP_a, SRP_o)) + geom_point(cex=6, aes(fill=Legend, shape=Legend)) +
@@ -623,16 +626,16 @@ grid.arrange(
                theme(legend.title = element_blank(), legend.position = c(0.28, 0.8)) +
                ylim(0, 20) + xlim(0, 20) + geom_abline(intercept = 0, slope=1, color="black") +
                stat_smooth(method="lm", lty=2, lwd=1.5, se=F, colour="black") +
-               ylab(expression(paste("Measured SRP (", mu, "mol ", g^{-1}, ")"))) + 
+               ylab(expression(paste("Measured inorganic P (", mu, "mol ", g^{-1}, ")"))) + 
                xlab(expression(paste("Added P-P", O[4]," (", mu, "mol ", g^{-1}, ")"))) +
                ggtitle("A)"),
-  pdata_org %>% group_by(Horizon, SRP_a2) %>% summarize(y=mean(Porg), y.sd=sd(Porg)) %>%
-    ggplot(aes(as.factor(SRP_a2), y)) + geom_bar(aes(fill=Horizon), stat = "identity", position=position_dodge(), color="black") +
+  pdata_org %>% group_by(Horizon2, SRP_a2) %>% summarize(y=mean(Porg), y.sd=sd(Porg)) %>%
+    ggplot(aes(as.factor(SRP_a2), y)) + geom_bar(aes(fill=Horizon2), stat = "identity", position=position_dodge(), color="black") +
     theme_min + scale_fill_manual(values = c("black", "grey")) + 
-    geom_errorbar(aes(ymin=y, ymax=y+y.sd, color=Horizon), position=position_dodge(), show.legend = F) +
+    geom_errorbar(aes(ymin=y, ymax=y+y.sd, color=Horizon2), position=position_dodge(), show.legend = F) +
     scale_color_manual(values = c("black", "black")) +
     theme(legend.title = element_blank(), legend.position = c(0.2, 0.85)) +
-    ylab(expression(paste("Measured DOP (", mu, "mol ", g^{-1}, ")"))) + 
+    ylab(expression(paste("Measured organic P (", mu, "mol ", g^{-1}, ")"))) + 
     xlab(expression(paste("Added P-P", O[4]," (", mu, "mol ", g^{-1}, ")"))) +
     ggtitle("B)"), nrow=1
 )
@@ -899,25 +902,26 @@ for(i in 1:nrow(viz_inh)){
 }
 
 viz_inh$Catchment<-factor(viz_inh$Catchment, levels = c("Plešné", "Čertovo"))
+viz_inh$Horizon2<-ifelse(viz_inh$Horizon=="Litter", "Forest floor", "Organic topsoil")
 
 grid.arrange(ggplot(subset(viz_inh, DOP==0.1 | DOP==10), aes(SRP, activity)) + 
-               geom_line(lwd=1.2, aes(linetype=Horizon, colour=as.factor(DOP))) +
+               geom_line(lwd=1.2, aes(linetype=Horizon2, colour=as.factor(DOP))) +
                theme_min + ylim(50, 100) + facet_grid(.~Catchment) + 
                scale_linetype_manual(values = c("solid", "dotdash")) +
                scale_color_manual(values = c("black", "grey60")) +
-               labs(color=expression(paste("DOP (", mu, "mol ", g^{-1}, ")")), linetype=c(" ")) +
-               ggtitle("A)") + ylab(expression(atop("Potential phosphatase activity", paste("(% of the actual activity)")))) +
-               xlab(expression(paste("SRP (", mu, "mol ", g^{-1}, ")"))) +
+               labs(color=expression(paste("Organic P (", mu, "mol ", g^{-1}, ")")), linetype=c(" ")) +
+               ggtitle("A)") + ylab(expression(atop("Phosphatase activity", paste("(% of the actual activity)")))) +
+               xlab(expression(paste("Inorganic P (", mu, "mol ", g^{-1}, ")"))) +
                theme(legend.direction = c("horizontal"), legend.box = c("vertical"), legend.position = c(0.25, 0.3),
                      panel.spacing = unit(2, "lines")),
              ggplot(subset(viz_inh, SRP==0.1 | SRP==10), aes(DOP, activity)) + 
-               geom_line(lwd=1.2, aes(linetype=Horizon, colour=as.factor(SRP))) +
+               geom_line(lwd=1.2, aes(linetype=Horizon2, colour=as.factor(SRP))) +
                theme_min + ylim(50, 100) + facet_grid(.~Catchment) + 
                scale_linetype_manual(values = c("solid", "dotdash")) +
                scale_color_manual(values = c("black", "grey60")) +
-               labs(color=expression(paste("SRP (", mu, "mol ", g^{-1}, ")")), linetype=c(" ")) +
-               ggtitle("B)") + ylab(expression(atop("Potential phosphatase activity", paste("(% of the actual activity)")))) +
-               xlab(expression(paste("DOP (", mu, "mol ", g^{-1}, ")"))) +
+               labs(color=expression(paste("Inorganic P (", mu, "mol ", g^{-1}, ")")), linetype=c(" ")) +
+               ggtitle("B)") + ylab(expression(atop("Phosphatase activity", paste("(% of the actual activity)")))) +
+               xlab(expression(paste("Organic P (", mu, "mol ", g^{-1}, ")"))) +
                theme(legend.direction = c("horizontal"), legend.box = c("vertical"), legend.position = c(0.25, 0.3),
                      panel.spacing = unit(2, "lines")),
              nrow=2)
@@ -1243,6 +1247,37 @@ grid.arrange(ggplot(data=rbind(P0, P10b), aes(Substrate, v)) + geom_line(aes(col
                theme(axis.title.x = element_blank(),
                      axis.text.x=element_text(vjust=0.2, size=14, colour="black")) +
                scale_x_discrete(labels=group_name), nrow=1)
+
+#############################################################################################################################################
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Another response to reviewer #1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#############################################################################################################################################
+MMCTA<-nls(v5~Substrate*Vmax/(Substrate+Km), start=list(Vmax=0.04, Km=10),
+           subset(erates, Legend=="Čertovo - Organic topsoil" & InhibitorSRP3==10 ))
+summary(MMCTA)
+Rsq(MMCTA)
+
+lbp1<-expression(paste(italic(Inorganic~P)==10~mu,"mol"~g^{-1}~";"~italic(Organic~P)==3.5~mu,"mol"~g^{-1}))
+
+
+ggplot(subset(erates, Legend=="Čertovo - Organic topsoil" & InhibitorSRP3==10), aes(Substrate, v5)) + 
+  geom_point(cex=6, pch=21, fill="grey") + theme_min + 
+  geom_errorbar(aes(ymin=v5-v5.se, ymax=v5+v5.se), width=0.01) +
+  ylab(expression(paste("Phosphatase activity  (", mu,"mol ", g^{-1}~min^{-1},")" ))) +
+  xlab(expression(paste("Initial MUB-P (", mu, "mol ", g^{-1}, ")"))) +
+  theme(legend.position = c(0.9,0.15)) +
+  stat_function(fun = function(x){coef(MMCTA)[1]*x/(coef(MMCTA)[2]+x)})+
+  geom_line(data = data.frame(Substrate=seq(0,65), v=seq(0,65)*ca_cip$Parameters[1]/(seq(0,65)+ca_cip$Parameters[2])),
+            aes(Substrate, v), color="grey60", lwd=1.5) +
+  annotate("text", x=33, y=0.002, label=lbp1, parse=TRUE, cex=6) +
+  annotate("text", x=23, y=0.008, label="Čertovo - Organic topsoil", cex=6) +
+  annotate("text", x=50, y=0.035, label="Measured (Inhibited)", cex=6) +
+  annotate("text", x=50, y=0.048, label="Predicted (Non-inhibited)", cex=6, color="grey60") +
+  scale_y_continuous(breaks = c(0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06))
+  
+  
+  
+
+
 #############################################################################################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Parameter values predictors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #############################################################################################################################################
