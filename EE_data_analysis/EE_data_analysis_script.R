@@ -1276,8 +1276,26 @@ ggplot(subset(erates, Legend=="Čertovo - Organic topsoil" & InhibitorSRP3==10),
   
   
   
+#############################################################################################################################################
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Stability of buffer-soil slurry pH~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#############################################################################################################################################
+pHstability<-data.frame(pH = c(4.51, 4.499, 4.491, 4.493, 4.492, 4.507,
+                               3.58, 3.583, 3.58, 3.585, 3.572, 3.581,
+                               4.06, 4.061, 4.057, 4.052, 4.056, 4.058,
+                               3.61, 3.608, 3.61, 3.605, 3.614, 3.611),
+                        Time = rep(c(0, 30, 60, 90, 120, 180), times=4),
+                        Soil = c(rep("Plešné - Forest floor", 6), rep("Plešné - Organic topsoil", 6), 
+                                 rep("Čertovo - Forest floor", 6), rep("Čertovo - Organic topsoil", 6)))
+pHstability$Soil<-factor(pHstability$Soil, levels = c("Plešné - Forest floor", "Plešné - Organic topsoil", 
+                                                      "Čertovo - Forest floor", "Čertovo - Organic topsoil"))
 
-
+ggplot(pHstability, aes(Time, pH)) + geom_point(cex=6, aes(fill=Soil, shape=Soil)) + 
+  scale_fill_manual(values = c("black", "black", "grey", "grey")) + 
+  scale_shape_manual(values = c(21, 22, 21, 22)) + 
+  geom_hline(yintercept = 4.51) + geom_hline(yintercept = 4.06, colour="grey") +
+  geom_hline(yintercept = 3.58, lty=2) + geom_hline(yintercept = 3.61, colour="grey", lty=2) +
+  theme_min + ylim(3, 5) + theme(legend.title = element_blank()) +
+  xlab("Time (min)")
 #############################################################################################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Parameter values predictors~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #############################################################################################################################################
