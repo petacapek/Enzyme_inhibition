@@ -569,4 +569,110 @@ Edata %>% mutate(Tbins = cut(ReactionTime,
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # #Example of using python odeint function in R - library set is required NOT RUN
 # scpy$odeint(WI, y0 = c(100, 0, 0), t = seq(0, 200), args = tuple(pars = c(0.1, 10)))
+source_python("../HydrolyticPython/WI.py")
+source_python("../HydrolyticPython/CI.py")
+source_python("../HydrolyticPython/UCI.py")
+source_python("../HydrolyticPython/NCI.py")
+source_python("../HydrolyticPython/SI.py")
+source_python("../HydrolyticPython/CO.py")
+source_python("../HydrolyticPython/COCI.py")
+#Import python odeint library
+scpy <- import("scipy.integrate")
 
+source("EnzymeKineticSearch.R")
+PLO_MUBG_0Kinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Plesne" & 
+                                                  Edata$Horizon == "Litter layer" & 
+                                                  Edata$Enzyme == "Beta-Glucosidase" & 
+                                                  Edata$BenzoicAcid == "False"),])
+PLO_MUBG_0Kinetic$Parms
+PLO_MUBG_0Kinetic$Goodness
+PLO_MUBG_BAKinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Plesne" & 
+                                                   Edata$Horizon == "Litter layer" & 
+                                                   Edata$Enzyme == "Beta-Glucosidase" & 
+                                                   Edata$BenzoicAcid == "True"),])
+PLO_MUBG_BAKinetic$Parms
+PLO_MUBG_BAKinetic$Goodness
+PLO_AMCL_0Kinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Plesne" & 
+                                                  Edata$Horizon == "Litter layer" & 
+                                                  Edata$Enzyme == "Leu-Aminopeptidase" & 
+                                                  Edata$BenzoicAcid == "False"),])
+PLO_AMCL_0Kinetic$Parms
+PLO_AMCL_0Kinetic$Goodness
+PLO_AMCL_BAKinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Plesne" & 
+                                                   Edata$Horizon == "Litter layer" & 
+                                                   Edata$Enzyme == "Leu-Aminopeptidase" & 
+                                                   Edata$BenzoicAcid == "True"),])
+PLO_AMCL_BAKinetic$Parms
+PLO_AMCL_BAKinetic$Goodness
+PLA_MUBG_0Kinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Plesne" & 
+                                                  Edata$Horizon == "Organic horizon" & 
+                                                  Edata$Enzyme == "Beta-Glucosidase" & 
+                                                  Edata$BenzoicAcid == "False"),])
+PLA_MUBG_0Kinetic$Parms
+PLA_MUBG_0Kinetic$Goodness
+PLA_MUBG_BAKinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Plesne" & 
+                                                   Edata$Horizon == "Organic horizon" & 
+                                                   Edata$Enzyme == "Beta-Glucosidase" & 
+                                                   Edata$BenzoicAcid == "True"),])
+PLA_MUBG_BAKinetic$Parms
+PLA_MUBG_BAKinetic$Goodness
+PLA_AMCL_0Kinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Plesne" & 
+                                                  Edata$Horizon == "Organic horizon" & 
+                                                  Edata$Enzyme == "Leu-Aminopeptidase" & 
+                                                  Edata$BenzoicAcid == "False"),])
+PLA_AMCL_0Kinetic$Parms
+PLA_AMCL_0Kinetic$Goodness
+PLA_AMCL_BAKinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Plesne" & 
+                                                   Edata$Horizon == "Organic horizon" & 
+                                                   Edata$Enzyme == "Leu-Aminopeptidase" & 
+                                                   Edata$BenzoicAcid == "True"),])
+PLA_AMCL_BAKinetic$Parms
+PLA_AMCL_BAKinetic$Goodness
+CTO_MUBG_0Kinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Certovo" & 
+                                                  Edata$Horizon == "Litter layer" & 
+                                                  Edata$Enzyme == "Beta-Glucosidase" & 
+                                                  Edata$BenzoicAcid == "False"),])
+CTO_MUBG_0Kinetic$Parms
+CTO_MUBG_0Kinetic$Goodness
+CTO_MUBG_BAKinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Certovo" & 
+                                                   Edata$Horizon == "Litter layer" & 
+                                                   Edata$Enzyme == "Beta-Glucosidase" & 
+                                                   Edata$BenzoicAcid == "True"),])
+CTO_MUBG_BAKinetic$Parms
+CTO_MUBG_BAKinetic$Goodness
+CTO_AMCL_0Kinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Certovo" & 
+                                                  Edata$Horizon == "Litter layer" & 
+                                                  Edata$Enzyme == "Leu-Aminopeptidase" & 
+                                                  Edata$BenzoicAcid == "False"),])
+CTO_AMCL_0Kinetic$Parms
+CTO_AMCL_0Kinetic$Goodness
+CTO_AMCL_BAKinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Certovo" & 
+                                                  Edata$Horizon == "Litter layer" & 
+                                                  Edata$Enzyme == "Leu-Aminopeptidase" & 
+                                                  Edata$BenzoicAcid == "True"),])
+CTO_AMCL_BAKinetic$Parms
+CTO_AMCL_BAKinetic$Goodness
+CTA_MUBG_0Kinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Certovo" & 
+                                                  Edata$Horizon == "Organic horizon" & 
+                                                  Edata$Enzyme == "Beta-Glucosidase" & 
+                                                  Edata$BenzoicAcid == "False"),])
+CTA_MUBG_0Kinetic$Parms
+CTA_MUBG_0Kinetic$Goodness
+CTA_MUBG_BAKinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Certovo" & 
+                                                   Edata$Horizon == "Organic horizon" & 
+                                                   Edata$Enzyme == "Beta-Glucosidase" & 
+                                                   Edata$BenzoicAcid == "True"),])
+CTA_MUBG_BAKinetic$Parms
+CTA_MUBG_BAKinetic$Goodness
+CTA_AMCL_0Kinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Certovo" & 
+                                                  Edata$Horizon == "Organic horizon" & 
+                                                  Edata$Enzyme == "Leu-Aminopeptidase" & 
+                                                  Edata$BenzoicAcid == "False"),])
+CTA_AMCL_0Kinetic$Parms
+CTA_AMCL_0Kinetic$Goodness
+CTA_AMCL_BAKinetic <- EnzymeKineticSearch(Edata[(Edata$Catchment == "Certovo" & 
+                                                   Edata$Horizon == "Organic horizon" & 
+                                                   Edata$Enzyme == "Leu-Aminopeptidase" & 
+                                                   Edata$BenzoicAcid == "True"),])
+CTA_AMCL_BAKinetic$Parms
+CTA_AMCL_BAKinetic$Goodness

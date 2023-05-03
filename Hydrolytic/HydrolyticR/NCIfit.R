@@ -1,6 +1,4 @@
 NCIfit <- function(data, x){
-  #Import python odeint library
-  scpy <- import("scipy.integrate")
   #Define a matrix (Uqs) with unique combinations of initial substrate and product concentrations
   Uqs <- as.matrix((unique(data[order(data$SubstrateInitial, 
                                       data$InhibitorInitial, 
@@ -18,7 +16,7 @@ NCIfit <- function(data, x){
   #Create a matrix of reaction  times (RT) with the same dimensions as (Obs)
   RT <- matrix(as.numeric(data[order(data$SubstrateInitial, 
                                      data$InhibitorInitial, 
-                                     data$ReactionTime), "ReactionTime"]), ncol = dim(Uqs)[1])
+                                     data$ReactionTime), "ReactionTime"]), ncol = dim(Uqs)[1])/60
   #Run simulation with optimized parameters 
   Yhat <- matrix(unlist(lapply(1:dim(Uqs)[1], function(i){
     scpy$odeint(NCI, y0 = c(Uqs[i,1], Uqs[i,2], 0), t = as.numeric(RT[,i]), args = tuple(x))[,3]})), 
@@ -35,11 +33,11 @@ NCIfit <- function(data, x){
   R2 = 1 - (sum((Obs - Yhat)^2, na.rm = T)/sum((Obs - M)^2, na.rm = T))
   R2adj = 1 - ((1 - R2)*((length(Obs) - 1)/(length(Obs) - 1 - length(x))))
   ###Log-Likelihood
-  ll = - sum((Obs - Yhat)^2, na.rm = T)/2/sd(Obs, na.rm = T)^2
+  ll = - sum((Obs - Yhat)^2/2/W^2, na.rm = T)
   ###AIC
   AIC = -2*ll + 2*length(x)
   ###normalized F
-  Fnorm = sum(((Obs - M)/W - (Yhat - Mhat)/What)^2, na.rm = T)
+  Fnorm = sum((Obs - Yhat)^2, na.rm = T)
                                      
   return(c(R2 = R2, R2adj = R2adj, ll = ll, AIC = AIC, Fnorm = Fnorm, n = length(Obs), p = length(x)))
 }

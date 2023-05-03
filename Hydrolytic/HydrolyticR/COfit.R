@@ -1,4 +1,4 @@
-UCIfit <- function(data, x){
+COfit <- function(data, x){
   #Define a matrix (Uqs) with unique combinations of initial substrate and product concentrations
   Uqs <- as.matrix((unique(data[order(data$SubstrateInitial, 
                                       data$InhibitorInitial, 
@@ -19,7 +19,7 @@ UCIfit <- function(data, x){
                                      data$ReactionTime), "ReactionTime"]), ncol = dim(Uqs)[1])/60
   #Run simulation with optimized parameters 
   Yhat <- matrix(unlist(lapply(1:dim(Uqs)[1], function(i){
-    scpy$odeint(UCI, y0 = c(Uqs[i,1], Uqs[i,2], 0), t = as.numeric(RT[,i]), args = tuple(x))[,3]})), 
+    scpy$odeint(CO, y0 = c(Uqs[i,1], Uqs[i,2], 0), t = as.numeric(RT[,i]), args = tuple(x))[,3]})), 
     ncol = dim(Uqs)[1])
   
   #Calculate goodness of fit indices
